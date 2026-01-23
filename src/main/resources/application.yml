@@ -1,0 +1,98 @@
+server:
+  port: 8080
+
+spring:
+  main:
+    allow-bean-definition-overriding: true  # 允许Bean定义覆盖
+  datasource:
+    url: jdbc:mysql://47.121.28.79:3306/tradewise?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    username: root
+    password: damien2code.
+  mail:
+    host: smtp.qq.com  # 可选: smtp.gmail.com, smtp.163.com, smtp.outlook.com
+    port: 587             # TLS端口: 587 或 SSL端口: 465
+    username: damienzhong@foxmail.com
+    password: oqpdiboiazyhbgdi
+    protocol: smtp
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+          ssl:
+            enable: false  # 如果使用SSL端口(465)，则设为true
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true  # 开启下划线到驼峰命名的自动映射
+
+logging:
+  level:
+    com.example.tradewise: DEBUG  # 设置应用包的日志级别为DEBUG
+    org.springframework.web: DEBUG  # 设置Web相关日志级别为DEBUG
+    org.springframework.mail: DEBUG  # 设置邮件相关日志级别为DEBUG
+    org.springframework.web.client: DEBUG  # 设置RestTemplate相关日志级别为DEBUG
+    com.fasterxml.jackson: DEBUG  # 设置Jackson相关日志级别为DEBUG
+
+# 自定义配置
+tradewise:
+  api:
+    base-url: https://www.binance.com
+    order-history-endpoint: /bapi/futures/v1/friendly/future/copy-trade/lead-portfolio/order-history
+  # 扫描间隔（秒）- 当前设置为60秒，与定时任务频率匹配
+  scan-interval: 60
+  # 并发和重试配置
+  max-concurrent-requests: 5
+  request-timeout-seconds: 30
+  retry-attempts: 3
+  retry-delay-ms: 1000
+  # 邮箱配置
+  email:
+    from: ${spring.mail.username}
+    # 邮箱地址现在从数据库表 email_config 中读取
+  # 市场分析配置
+  market-analysis:
+    enabled: true  # 是否启用市场分析功能
+    symbols-to-monitor:  # 要监控的交易对
+      - BTCUSDT
+      - ETHUSDT
+      - BNBUSDT
+      - SOLUSDT
+    interval: 1h  # K线周期
+    limit: 200    # 获取K线的数量
+    analysis-interval-minutes: 15  # 标准交易信号分析间隔（分钟），每15分钟执行一次
+    fast-analysis-enabled: true  # 是否启用快速扫描模式
+    fast-analysis-interval-minutes: 5  # 快速扫描间隔（分钟），每5分钟执行一次
+    deep-analysis-enabled: true  # 是否启用深度分析模式
+    deep-analysis-interval-hours: 1  # 深度分析间隔（小时），每小时执行一次
+    # 技术指标参数
+    ema-short-period: 12  # 短期EMA周期
+    ema-long-period: 26   # 长期EMA周期
+    rsi-period: 14        # RSI周期
+    bb-period: 20         # 布林带周期
+    bb-std-multiplier: 2.0  # 布林带标准差倍数
+    # 风险管理参数
+    atr-period: 14        # ATR周期
+    min-volume-ratio: 1.2 # 最小成交量比率
+    trend-strength-period: 50  # 趋势强度计算周期
+    # 信号生成参数
+    signal-confirmation-threshold: 2  # 信号确认阈值，至少需要多少个指标确认（1=宽松,2=适中,3=严格）
+    signal-frequency-control:
+      level-1-threshold: 8    # LEVEL_1信号最低评分阈值
+      level-2-threshold: 6    # LEVEL_2信号最低评分阈值
+      level-3-threshold: 4    # LEVEL_3信号最低评分阈值
+    # 新增：数据引擎参数
+    data-engine-enabled: true  # 是否启用数据引擎
+    multi-timeframe-analysis:
+      enabled: true
+      timeframes: ["15m", "1h", "4h"]  # 支持的时间框架
+    risk-management:
+      min-risk-reward-ratio: 1.5  # 最小风险回报比
+      max-position-risk-percent: 2.0  # 最大单笔风险百分比
+      cooldown-hours: 1  # 同币种信号冷却时间（小时）
+  # 交易员跟单配置
+  copy-trading:
+    enabled: true  # 是否启用交易员跟单功能
+  # 交易员配置现在完全从数据库表 trader_config 中读取
+  # 配置文件中的traders部分不再使用

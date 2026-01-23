@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>市场行情信号通知</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f4f4f4; padding: 10px; border-radius: 5px; }
+        .signal-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .signal-table th, .signal-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .signal-table th { background-color: #f2f2f2; }
+        .buy { color: green; font-weight: bold; }
+        .sell { color: red; font-weight: bold; }
+        .positive { color: green; }
+        .negative { color: red; }
+        .info { background-color: #e7f3ff; padding: 10px; border-left: 4px solid #2196F3; margin: 10px 0; }
+        .risk-section { background-color: #fff3cd; padding: 10px; border-left: 4px solid #ffc107; margin: 10px 0; }
+        .level-1 { background-color: #ffebee; border-left: 4px solid #f44336; }
+        .level-2 { background-color: #fff8e1; border-left: 4px solid #ffc107; }
+        .level-3 { background-color: #e3f2fd; border-left: 4px solid #2196f3; }
+        .level-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .level-1-badge { background-color: #f44336; color: white; }
+        .level-2-badge { background-color: #ffc107; color: black; }
+        .level-3-badge { background-color: #2196f3; color: white; }
+        .trade-plan-card { border: 1px solid #ddd; padding: 15px; margin: 15px 0; background: #f9f9f9; }
+        .trade-plan-card h3 { margin-top: 0; color: #333; }
+        .summary-cards { display: flex; margin: 15px 0; gap: 10px; }
+        .summary-card { flex: 1; padding: 10px; margin-right: 10px; }
+        .tech-analysis { background: #fff3cd; }
+        .risk-warning { background: #d1ecf1; }
+        .follow-up { background: #d4edda; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>TradeWise 智能交易系统 - 交易信号提醒</h2>
+        <p><strong>交易对:</strong> <span th:text="${symbol}"></span></p>
+        <p><strong>信号数量:</strong> <span th:text="${signalsCount}"></span></p>
+        <p><strong>分析时间:</strong> <span th:text="${#dates.format(#dates.createNow(), 'yyyy-MM-dd HH:mm:ss')}"></span></p>
+    </div>
+
+    <div class="info">
+        <p><strong>信号说明:</strong> 以下信号基于多维度技术指标分析生成，包含完整的交易计划，仅供参考，投资需谨慎。</p>
+    </div>
+
+    <!-- 为每个信号生成交易计划卡 -->
+    <div th:each="signal : ${signals}">
+        <!-- 交易计划卡 -->
+        <div class="trade-plan-card" th:if="${signal.signalLevel != 'LEVEL_3'}">
+            <h3>交易计划 (<span th:text="${signal.symbol}"/> <span th:class="${signal.signalType.name() == 'BUY'} ? 'buy' : 'sell'" 
+                        th:text="${signal.signalType.name() == 'BUY'} ? '做多' : '做空'"/>)</h3>
+            <p><strong>入场策略：</strong>现价<span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.price), 0, 8)}"/>入场或反弹至<span th:text="${signal.signalType.name() == 'BUY'} ? ${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.price + (signal.takeProfit - signal.price) * 0.1), 0, 8)} : ${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.price - (signal.price - signal.stopLoss) * 0.1), 0, 8)}"/>附近入场</p>
+            <p th:if="${signal.stopLoss != 0}"><strong>止损策略：</strong><span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.stopLoss), 0, 8)}"/> (<span th:if="${signal.signalType.name() == 'BUY'}">跌破止损位下方</span><span th:unless="${signal.signalType.name() == 'BUY'}">突破止损位上方</span>)</p>
+            <p th:unless="${signal.stopLoss != 0}"><strong>止损策略：</strong>待计算</p>
+            <p th:if="${signal.takeProfit != 0}"><strong>止盈策略：</strong>第一目标<span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.takeProfit), 0, 8)}"/></p>
+            <p th:unless="${signal.takeProfit != 0}"><strong>止盈策略：</strong>待计算</p>
+            <p th:if="${signal.signalExplanation['risk_reward_ratio'] != null}">
+                <strong>风险回报比：</strong><span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.signalExplanation['risk_reward_ratio']), 0, 2)}"/>:1
+            </p>
+            <p th:unless="${signal.signalExplanation['risk_reward_ratio'] != null}">
+                <strong>风险回报比：</strong>待计算
+            </p>
+            <p><strong>仓位建议：</strong>
+                <span th:if="${signal.score >= 8}">标准仓位(<span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.positionSize), 0, 4)}"/>张)</span>
+                <span th:if="${signal.score >= 6 and signal.score < 8}">轻仓(<span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.positionSize), 0, 4)}"/>张)</span>
+                <span th:if="${signal.score < 6}">迷你仓位(<span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.positionSize), 0, 4)}"/>张)</span>
+            </p>
+            <p><strong>关键观察：</strong>若价格30分钟内无法达到入场条件，考虑重新评估</p>
+        </div>
+
+        <!-- 信号摘要卡片 -->
+        <div class="summary-cards" th:if="${signal.signalLevel != 'LEVEL_3'}">
+            <div class="summary-card tech-analysis">
+                <strong>技术面</strong>
+                <p th:if="${signal.signalType.name() == 'BUY'}">• 突破关键阻力位 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.price), 0, 8)}"/></p>
+                <p th:unless="${signal.signalType.name() == 'BUY'}">• 跌破关键支撑位 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.price), 0, 8)}"/></p>
+                <p>• 信号评分: <span th:text="${signal.score}"/>/10</p>
+                <p>• 结构确认完成</p>
+            </div>
+            <div class="summary-card risk-warning">
+                <strong>风险提示</strong>
+                <p th:if="${signal.score < 6}">• 信号评分较低(<span th:text="${signal.score}"/>/10)</p>
+                <p th:if="${signal.score >= 6}">• 信号评分中等(<span th:text="${signal.score}"/>/10)</p>
+                <p th:if="${signal.score >= 8}">• 信号评分较高(<span th:text="${signal.score}"/>/10)</p>
+                <p th:if="${signal.stopLoss != 0}">• 严格止损 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.stopLoss), 0, 8)}"/></p>
+                <p th:unless="${signal.stopLoss != 0}">• 严格止损 待计算</p>
+                <p th:if="${signal.signalExplanation['risk_reward_ratio'] != null}">• 风险回报比 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.signalExplanation['risk_reward_ratio']), 0, 2)}"/>:1</p>
+                <p th:unless="${signal.signalExplanation['risk_reward_ratio'] != null}">• 风险回报比 待计算</p>
+            </div>
+            <div class="summary-card follow-up">
+                <strong>后续观察</strong>
+                <p th:if="${signal.signalType.name() == 'BUY'}">• 关注 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.takeProfit), 0, 8)}"/> 整数关口</p>
+                <p th:unless="${signal.signalType.name() == 'BUY'}">• 关注 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.takeProfit), 0, 8)}"/> 整数关口</p>
+                <p th:if="${signal.signalType.name() == 'BUY'}">• 突破 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.takeProfit), 0, 8)}"/> 可考虑加仓</p>
+                <p th:unless="${signal.signalType.name() == 'BUY'}">• 跌破 <span th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.takeProfit), 0, 8)}"/> 可考虑加仓</p>
+                <p>• 反弹至入场价附近以上放弃</p>
+            </div>
+        </div>
+    </div>
+
+    <div>
+        <h3>信号详情表格</h3>
+        <table class="signal-table">
+            <thead>
+                <tr>
+                    <th>交易对</th>
+                    <th>信号类型</th>
+                    <th>指标名称</th>
+                    <th>当前价格</th>
+                    <th>信号评分</th>
+                    <th>信号等级</th>
+                    <th>止损位</th>
+                    <th>止盈位</th>
+                    <th>杠杆倍数</th>
+                    <th>预估爆仓价</th>
+                    <th>所需保证金</th>
+                    <th>预期收益率</th>
+                    <th>信号描述</th>
+                    <th>开单建议</th>
+                    <th>置信度</th>
+                    <th>生成时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="signal : ${signals}" th:class="${signal.signalLevel == 'LEVEL_1' ? 'level-1' : (signal.signalLevel == 'LEVEL_2' ? 'level-2' : 'level-3')}">
+                    <td th:text="${signal.symbol}">-</td>
+                    <td th:class="${signal.signalType.name() == 'BUY'} ? 'buy' : 'sell'" 
+                        th:text="${signal.signalType.name() == 'BUY'} ? '买入信号' : (${signal.signalType.name() == 'SELL'} ? '卖出信号' : ${signal.signalType.name()})">-</td>
+                    <td th:text="${signal.indicator}">-</td>
+                    <td th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.price), 0, 8)}">-</td>
+                    <td th:text="${signal.score} + '/10'"><span th:if="${signal.score} > 0" th:text="${signal.score}" />/10</td>
+                    <td>
+                        <span class="level-badge" th:class="${signal.signalLevel == 'LEVEL_1' ? 'level-1-badge' : (signal.signalLevel == 'LEVEL_2' ? 'level-2-badge' : 'level-3-badge')}"
+                              th:text="${signal.signalLevel}"></span>
+                    </td>
+                    <td th:if="${signal.stopLoss != 0}" th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.stopLoss), 0, 8)}">-</td>
+                    <td th:unless="${signal.stopLoss != 0}">待计算</td>
+                    <td th:if="${signal.takeProfit != 0}" th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.takeProfit), 0, 8)}">-</td>
+                    <td th:unless="${signal.takeProfit != 0}">待计算</td>
+                    <td th:text="${signal.leverage}">-</td>
+                    <td th:if="${signal.liquidationPrice != 0}" th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.liquidationPrice), 0, 8)}">-</td>
+                    <td th:unless="${signal.liquidationPrice != 0}">待计算</td>
+                    <td th:if="${signal.marginRequired != 0}" th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.marginRequired), 0, 8)}">-</td>
+                    <td th:unless="${signal.marginRequired != 0}">待计算</td>
+                    <td th:if="${signal.roiPercentage != 0}" th:text="${#numbers.formatDecimal(T(java.math.BigDecimal).valueOf(signal.roiPercentage), 0, 2)} + '%'">-</td>
+                    <td th:unless="${signal.roiPercentage != 0}">待计算</td>
+                    <td th:text="${signal.reason}">-</td>
+                    <td th:text="${signal.suggestion}">-</td>
+                    <td th:class="${signal.confidence == '高'} ? 'positive' : 'negative'"
+                        th:text="${signal.confidence}">-</td>
+                    <td th:text="${#temporals.format(signal.timestamp, 'yyyy-MM-dd HH:mm:ss')}">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="risk-section">
+        <h4>风险提示</h4>
+        <ul>
+            <li>LEVEL_1 (8-10分): 红色警报 - 高概率信号，严格按止损止盈执行</li>
+            <li>LEVEL_2 (6-7分): 黄色预警 - 中等概率信号，注意资金管理</li>
+            <li>LEVEL_3 (4-5分): 蓝色观察 - 低概率信号，谨慎操作或仅记录</li>
+        </ul>
+    </div>
+    
+    <div style="margin-top: 20px; font-size: 12px; color: #666;">
+        <p>此邮件由TradeWise市场行情分析系统自动发送，请勿回复。</p>
+        <p>注意：技术指标信号仅供投资参考，市场有风险，投资需谨慎。</p>
+    </div>
+</body>
+</html>

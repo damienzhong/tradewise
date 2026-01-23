@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>市场行情描述汇总与建议</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f0f0f0; padding: 10px; border-radius: 5px; margin-bottom: 20px; }
+        .section { margin-bottom: 15px; }
+        .symbol-section { margin-top: 20px; border: 1px solid #ddd; padding: 10px; border-radius: 5px; background-color: #fafafa; }
+        .positive { color: green; }
+        .negative { color: red; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>市场行情描述与建议汇总</h2>
+        <p>总交易对数量: <span th:text="${totalSymbolsCount}"></span></p>
+        <p>分析时间: <span th:text="${#dates.format(#dates.createNow(), 'yyyy-MM-dd HH:mm:ss')}"></span></p>
+    </div>
+
+    <div class="section">
+        <h3>各交易对市场行情分析</h3>
+        <!-- 按交易对显示市场描述 -->
+        <div th:each="desc : ${marketDescriptions}" class="symbol-section">
+            <h4><span th:text="${desc.symbol}"></span> - 行情分析</h4>
+            <ul>
+                <li>当前价格: <span th:text="${#numbers.formatDecimal(desc.currentPrice, 0, 4)}"></span></li>
+                <li>趋势状态: <span th:text="${desc.trendStatus}"></span></li>
+                <li>波动水平: <span th:text="${desc.volatilityLevel}"></span></li>
+                <li>成交量状态: <span th:text="${desc.volumeStatus}"></span></li>
+                <li>RSI状态: <span th:text="${desc.rsiStatus}"></span></li>
+                <li>布林带状态: <span th:text="${desc.bollingerStatus}"></span></li>
+            </ul>
+            <div class="section">
+                <h4>整体市场观点</h4>
+                <p th:text="${desc.overallMarketView}"></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>总体交易建议</h3>
+        <p>基于当前市场分析，建议根据各交易对的不同情况，结合个人风险偏好适当调整仓位。</p>
+    </div>
+    
+    <hr>
+    <p><em>此消息由TradeWise市场分析系统自动生成</em></p>
+</body>
+</html>

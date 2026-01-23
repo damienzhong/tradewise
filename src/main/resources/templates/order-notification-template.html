@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>新订单通知</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .header { background-color: #f4f4f4; padding: 10px; border-radius: 5px; }
+        .order-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .order-table th, .order-table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        .order-table th { background-color: #f2f2f2; }
+        .buy { color: green; font-weight: bold; }
+        .sell { color: red; font-weight: bold; }
+        .positive { color: green; }
+        .negative { color: red; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h2>明道趋势跟单系统 - 新订单提醒</h2>
+        <p><strong>交易员:</strong> <span th:text="${traderName}"></span></p>
+        <p><strong>发现新订单数量:</strong> <span th:text="${newOrdersCount}"></span></p>
+        <p><strong>通知时间:</strong> <span th:text="${#dates.format(#dates.createNow(), 'yyyy-MM-dd HH:mm:ss')}"></span></p>
+    </div>
+
+    <div>
+        <h3>订单详情</h3>
+        <table class="order-table">
+            <thead>
+                <tr>
+                    <th>交易对</th>
+                    <th>方向</th>
+                    <th>类型</th>
+                    <th>仓位</th>
+                    <th>成交数量</th>
+                    <th>平均价格</th>
+                    <th>总盈亏</th>
+                    <th>下单时间</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr th:each="order : ${newOrders}">
+                    <td th:text="${order.symbol}">-</td>
+                    <td th:class="${order.side == 'BUY'} ? 'buy' : 'sell'" 
+                        th:text="${order.side == 'BUY'} ? '买入' : (${order.side == 'SELL'} ? '卖出' : ${order.side})">-</td>
+                    <td th:text="${order.type == 'LIMIT'} ? '限价单' : (${order.type == 'MARKET'} ? '市价单' : ${order.type})">-</td>
+                    <td th:text="${order.positionSide == 'LONG'} ? '多仓' : (${order.positionSide == 'SHORT'} ? '空仓' : ${order.positionSide})">-</td>
+                    <td th:text="${#numbers.formatDecimal(order.executedQty, 0, 8)}">-</td>
+                    <td th:text="${#numbers.formatDecimal(order.avgPrice, 0, 8)}">-</td>
+                    <td th:class="${order.totalPnl gt 0} ? 'positive' : 'negative'" 
+                        th:text="${#numbers.formatDecimal(order.totalPnl, 0, 8)}">-</td>
+                    <td th:text="${#dates.format(new java.util.Date(order.orderTime), 'yyyy-MM-dd HH:mm:ss')}">-</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    
+    <div style="margin-top: 20px; font-size: 12px; color: #666;">
+        <p>此邮件由明道趋势跟单监控系统自动发送，请勿回复。</p>
+    </div>
+</body>
+</html>
