@@ -4,6 +4,8 @@ import com.example.tradewise.service.MarketAnalysisService;
 import com.example.tradewise.config.TradeWiseProperties;
 import com.example.tradewise.service.SignalStateManager;
 import com.example.tradewise.service.AdaptiveParameterSystem;
+import com.example.tradewise.service.SignalFilterService;
+import com.example.tradewise.service.DailySummaryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,12 +30,18 @@ public class MarketAnalysisScheduler {
 
     @Autowired
     private TradeWiseProperties tradeWiseProperties;
-    
+
     @Autowired
     private SignalStateManager signalStateManager; // 注入信号状态管理器
-    
+
     @Autowired
     private AdaptiveParameterSystem adaptiveParameterSystem; // 注入自适应参数系统
+
+    @Autowired
+    private SignalFilterService signalFilterService; // 注入信号过滤服务
+
+    @Autowired
+    private DailySummaryService dailySummaryService; // 注入每日摘要服务
 
     /**
      * 每15分钟执行一次标准市场分析，生成交易信号
@@ -86,8 +94,8 @@ public class MarketAnalysisScheduler {
     @Scheduled(cron = "0 0 * * * ?") // 每小时执行一次
     public void deepTechnicalAnalysis() {
         // 检查深度分析功能是否启用
-        if (!tradeWiseProperties.getMarketAnalysis().isEnabled() || 
-            !tradeWiseProperties.getMarketAnalysis().isDeepAnalysisEnabled()) {
+        if (!tradeWiseProperties.getMarketAnalysis().isEnabled() ||
+                !tradeWiseProperties.getMarketAnalysis().isDeepAnalysisEnabled()) {
             logger.debug("深度分析功能已禁用，跳过本次分析");
             return;
         }
@@ -103,7 +111,7 @@ public class MarketAnalysisScheduler {
             logger.error("执行深度技术分析任务时发生错误", e);
         }
     }
-    
+
     /**
      * 每30分钟清理一次过期的信号状态
      */
@@ -113,7 +121,7 @@ public class MarketAnalysisScheduler {
         signalStateManager.cleanupExpiredSignals();
         logger.debug("完成信号状态清理");
     }
-    
+
     /**
      * 每日执行参数优化
      */
@@ -123,10 +131,24 @@ public class MarketAnalysisScheduler {
         adaptiveParameterSystem.optimizeParameters();
         logger.info("完成参数优化");
     }
-    
+
+    /**
+     * 每天晚上8点发送每日信号摘要
+     */
+    @Scheduled(cron = "0 0 20 * * ?") // 每天晚上8点执行
+    public void sendDailySummary() {
+        logger.info("开始发送每日信号摘要...");
+        try {
+            dailySummaryService.sendDailySummary();
+            logger.info("每日信号摘要发送完成");
+        } catch (Exception e) {
+            logger.error("发送每日信号摘要时发生错误", e);
+        }
+    }
+
     /**
      * 执行市场分析的核心方法
-     * 
+     *
      * @param analysisType 分析类型（标准/快速）
      */
     private void performMarketAnalysis(String analysisType) {
@@ -140,34 +162,29 @@ public class MarketAnalysisScheduler {
         for (String symbol : symbolsToMonitor) {
             // 获取该交易对的信号，使用增强评分系统
             List<MarketAnalysisService.TradingSignal> signals = marketAnalysisService.
-                generateSignalsForSymbol(symbol, true); // 启用增强评分
-            
+                    generateSignalsForSymbol(symbol, true); // 启用增强评分
+
             // 添加到总信号列表
             if (signals != null && !signals.isEmpty()) {
                 allSignals.addAll(signals);
-                logger.info("为交易对 {} 生成了 {} 个交易信号（{}分析）", 
-                    symbol, signals.size(), analysisType);
+                logger.info("为交易对 {} 生成了 {} 个交易信号（{}分析）",
+                        symbol, signals.size(), analysisType);
             }
         }
-        
-        // 使用信号聚合器过滤信号，减少过多的邮件通知
-        // 从配置中获取信号频率控制参数
-        int level1Threshold = tradeWiseProperties.getMarketAnalysis().getSignalFrequencyControl().getLevel1Threshold();
-        int level2Threshold = tradeWiseProperties.getMarketAnalysis().getSignalFrequencyControl().getLevel2Threshold();
-        int level3Threshold = tradeWiseProperties.getMarketAnalysis().getSignalFrequencyControl().getLevel3Threshold();
-        
-        MarketAnalysisService.SignalAggregator aggregator = new MarketAnalysisService.SignalAggregator(level1Threshold, level2Threshold, level3Threshold);
-        allSignals = aggregator.aggregateSignals(allSignals);
 
-        // 如果有信号，发送合并的邮件通知
-        if (!allSignals.isEmpty()) {
-            marketAnalysisService.sendCombinedMarketSignalNotification(allSignals);
-            
+        // 使用新的信号过滤服务，只发送高质量信号
+        List<MarketAnalysisService.TradingSignal> filteredSignals =
+                signalFilterService.filterSignalsForImmediateSend(allSignals);
+
+        // 如果有高质量信号，立即发送邮件通知
+        if (!filteredSignals.isEmpty()) {
+            marketAnalysisService.sendCombinedMarketSignalNotification(filteredSignals);
+
             // 记录信号到绩效跟踪器（通过MarketAnalysisService传递）
-            marketAnalysisService.recordSignalPerformance(allSignals);
+            marketAnalysisService.recordSignalPerformance(filteredSignals);
         }
 
-        logger.info("完成{}市场行情分析任务，共分析了 {} 个交易对，生成 {} 个信号", 
-            analysisType, symbolsToMonitor.length, allSignals.size());
+        logger.info("完成{}市场行情分析任务，共分析了 {} 个交易对，生成 {} 个信号，发送 {} 个高质量信号",
+                analysisType, symbolsToMonitor.length, allSignals.size(), filteredSignals.size());
     }
 }

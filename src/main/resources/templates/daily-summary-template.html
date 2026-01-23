@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>每日信号摘要</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+        }
+        .header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            padding: 20px;
+            background-color: #f8f9fa;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+        .content {
+            padding: 30px;
+        }
+        .symbol-section {
+            margin-bottom: 30px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .symbol-header {
+            background-color: #f8f9fa;
+            padding: 15px 20px;
+            border-bottom: 2px solid #667eea;
+        }
+        .symbol-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        .signal-count {
+            color: #667eea;
+            font-size: 14px;
+        }
+        .signal-item {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .signal-item:last-child {
+            border-bottom: none;
+        }
+        .signal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .signal-type {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .signal-type.buy {
+            color: #10b981;
+        }
+        .signal-type.sell {
+            color: #ef4444;
+        }
+        .signal-level {
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .level-3 {
+            background-color: #fef3c7;
+            color: #92400e;
+        }
+        .signal-info {
+            color: #666;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .signal-price {
+            font-weight: bold;
+            color: #333;
+        }
+        .footer {
+            background-color: #f8f9fa;
+            padding: 20px;
+            text-align: center;
+            color: #666;
+            font-size: 12px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .notice {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .notice-title {
+            font-weight: bold;
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        .notice-text {
+            color: #856404;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📊 每日信号摘要</h1>
+        <p th:text="${summaryDate}">2024-01-01</p>
+    </div>
+
+    <div class="stats">
+        <div class="stat-item">
+            <div class="stat-value" th:text="${totalSymbolsCount}">0</div>
+            <div class="stat-label">交易对数量</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" th:text="${totalSignalsCount}">0</div>
+            <div class="stat-label">观察信号</div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-value" th:text="${statistics.todaySignalCount}">0</div>
+            <div class="stat-label">今日已发送</div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="notice">
+            <div class="notice-title">💡 关于每日摘要</div>
+            <div class="notice-text">
+                本摘要包含低优先级（LEVEL_3）观察信号，仅供参考。高优先级信号（LEVEL_1和LEVEL_2）会立即单独发送。
+            </div>
+        </div>
+
+        <div th:each="entry : ${signalsBySymbol}" class="symbol-section">
+            <div class="symbol-header">
+                <span class="symbol-name" th:text="${entry.key}">BTCUSDT</span>
+                <span class="signal-count" th:text="${entry.value.size()} + ' 个信号'">0 个信号</span>
+            </div>
+
+            <div th:each="signal : ${entry.value}" class="signal-item">
+                <div class="signal-header">
+                        <span class="signal-type"
+                              th:classappend="${signal.signalType.name() == 'BUY'} ? 'buy' : 'sell'"
+                              th:text="${signal.signalType.name() == 'BUY'} ? '🟢 买入观察' : '🔴 卖出观察'">
+                            买入观察
+                        </span>
+                    <span class="signal-level level-3">观察级别</span>
+                </div>
+                <div class="signal-info">
+                    <div><strong>指标：</strong><span th:text="${signal.indicator}">指标名称</span></div>
+                    <div><strong>价格：</strong><span class="signal-price" th:text="${#numbers.formatDecimal(signal.price, 1, 4)}">0.0000</span></div>
+                    <div><strong>原因：</strong><span th:text="${signal.reason}">信号原因</span></div>
+                    <div><strong>评分：</strong><span th:text="${signal.score} + '/10'">0/10</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p><strong>⚠️ 风险提示</strong></p>
+        <p>本系统提供的信号仅供参考，不构成投资建议。加密货币交易存在高风险，请谨慎决策。</p>
+        <p style="margin-top: 15px; color: #999;">
+            TradeWise 跟单订单监控系统 |
+            <span th:text="${#temporals.format(#temporals.createNow(), 'yyyy-MM-dd HH:mm:ss')}"></span>
+        </p>
+    </div>
+</div>
+</body>
+</html>
