@@ -1,11 +1,15 @@
 package com.example.tradewise.scheduler;
 
 import com.example.tradewise.service.MarketAnalysisService;
+import com.example.tradewise.service.MarketAnalysisService.Candlestick;
+import com.example.tradewise.service.MarketAnalysisService.TradingSignal;
 import com.example.tradewise.config.TradeWiseProperties;
 import com.example.tradewise.service.SignalStateManager;
 import com.example.tradewise.service.AdaptiveParameterSystem;
 import com.example.tradewise.service.SignalFilterService;
 import com.example.tradewise.service.DailySummaryService;
+import com.example.tradewise.service.HighQualitySignalEnhancer;
+import com.example.tradewise.service.MarketDataService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,6 +46,12 @@ public class MarketAnalysisScheduler {
 
     @Autowired
     private DailySummaryService dailySummaryService; // 注入每日摘要服务
+
+    @Autowired
+    private HighQualitySignalEnhancer highQualitySignalEnhancer; // 注入高质量信号增强器
+
+    @Autowired
+    private MarketDataService marketDataService; // 注入市场数据服务
 
     /**
      * 每15分钟执行一次标准市场分析，生成交易信号
@@ -152,39 +162,67 @@ public class MarketAnalysisScheduler {
      * @param analysisType 分析类型（标准/快速）
      */
     private void performMarketAnalysis(String analysisType) {
-        // 从配置中获取要监控的交易对
         String[] symbolsToMonitor = tradeWiseProperties.getMarketAnalysis().getSymbolsToMonitor();
 
-        // 收集所有交易对的信号
-        List<MarketAnalysisService.TradingSignal> allSignals = new ArrayList<>();
+        // 1. 收集多时间框架数据
+        java.util.Map<String, List<Candlestick>> candlesticksMap = new java.util.HashMap<>();
+        java.util.Map<String, java.util.Map<String, List<Candlestick>>> multiTimeframeDataMap = new java.util.HashMap<>();
 
-        // 遍历所有要监控的交易对
         for (String symbol : symbolsToMonitor) {
-            // 获取该交易对的信号，使用增强评分系统
-            List<MarketAnalysisService.TradingSignal> signals = marketAnalysisService.
-                    generateSignalsForSymbol(symbol, true); // 启用增强评分
+            try {
+                // 获取1小时数据（主要分析周期）
+                List<Candlestick> hourlyData = marketDataService.getKlines(symbol, "1h", 200);
+                candlesticksMap.put(symbol, hourlyData);
 
-            // 添加到总信号列表
-            if (signals != null && !signals.isEmpty()) {
-                allSignals.addAll(signals);
-                logger.info("为交易对 {} 生成了 {} 个交易信号（{}分析）",
-                        symbol, signals.size(), analysisType);
+                // 获取多时间框架数据用于确认
+                java.util.Map<String, List<Candlestick>> mtfData = new java.util.HashMap<>();
+                mtfData.put("4h", marketDataService.getKlines(symbol, "4h", 100));
+                mtfData.put("1d", marketDataService.getKlines(symbol, "1d", 30));
+                multiTimeframeDataMap.put(symbol, mtfData);
+            } catch (Exception e) {
+                logger.error("获取 {} 的市场数据失败: {}", symbol, e.getMessage());
             }
         }
 
-        // 使用新的信号过滤服务，只发送高质量信号
-        List<MarketAnalysisService.TradingSignal> filteredSignals =
-                signalFilterService.filterSignalsForImmediateSend(allSignals);
+        // 2. 生成原始信号
+        List<TradingSignal> allSignals = new ArrayList<>();
+        for (String symbol : symbolsToMonitor) {
+            List<TradingSignal> signals = marketAnalysisService.generateSignalsForSymbol(symbol, true);
+            if (signals != null && !signals.isEmpty()) {
+                allSignals.addAll(signals);
+            }
+        }
 
-        // 如果有高质量信号，立即发送邮件通知
+        logger.info("生成原始信号: {}个", allSignals.size());
+
+        // 3. 使用高质量信号增强器过滤和增强信号
+        List<TradingSignal> enhancedSignals = new ArrayList<>();
+        for (TradingSignal signal : allSignals) {
+            List<Candlestick> candlesticks = candlesticksMap.get(signal.getSymbol());
+            java.util.Map<String, List<Candlestick>> mtfData = multiTimeframeDataMap.get(signal.getSymbol());
+
+            if (candlesticks != null && !candlesticks.isEmpty()) {
+                TradingSignal enhanced = highQualitySignalEnhancer.enhanceSignal(signal, candlesticks, mtfData);
+                if (enhanced != null && enhanced.getScore() >= 6) {
+                    enhancedSignals.add(enhanced);
+                }
+            }
+        }
+
+        logger.info("高质量信号: {}个（过滤率: {:.1f}%）",
+                enhancedSignals.size(),
+                allSignals.isEmpty() ? 0 : (1 - (double)enhancedSignals.size() / allSignals.size()) * 100);
+
+        // 4. 应用信号过滤器（每日限额和冷却）
+        List<TradingSignal> filteredSignals = signalFilterService.filterSignalsForImmediateSend(enhancedSignals);
+
+        // 5. 发送高质量信号
         if (!filteredSignals.isEmpty()) {
             marketAnalysisService.sendCombinedMarketSignalNotification(filteredSignals);
-
-            // 记录信号到绩效跟踪器（通过MarketAnalysisService传递）
             marketAnalysisService.recordSignalPerformance(filteredSignals);
         }
 
-        logger.info("完成{}市场行情分析任务，共分析了 {} 个交易对，生成 {} 个信号，发送 {} 个高质量信号",
-                analysisType, symbolsToMonitor.length, allSignals.size(), filteredSignals.size());
+        logger.info("完成{}市场行情分析: 原始{}个 → 高质量{}个 → 发送{}个",
+                analysisType, allSignals.size(), enhancedSignals.size(), filteredSignals.size());
     }
 }

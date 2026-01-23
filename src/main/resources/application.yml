@@ -59,6 +59,7 @@ tradewise:
       - ETHUSDT
       - BNBUSDT
       - SOLUSDT
+      - LTCUSDT
     interval: 1h  # K线周期
     limit: 200    # 获取K线的数量
     analysis-interval-minutes: 15  # 标准交易信号分析间隔（分钟），每15分钟执行一次
