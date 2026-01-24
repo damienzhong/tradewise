@@ -50,6 +50,7 @@ tradewise:
   # 邮箱配置
   email:
     from: ${spring.mail.username}
+    enabled: true  # 是否启用邮件发送，设置为false可在本地调试时禁用邮件
     # 邮箱地址现在从数据库表 email_config 中读取
   # 市场分析配置
   market-analysis:
