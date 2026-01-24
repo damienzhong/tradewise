@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>交易员管理 - TradeWise</title>
+    <title>用户管理 - TradeWise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -41,7 +41,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="/traders">
+                        <a class="nav-link" href="/traders">
                             <i class="bi bi-people"></i> 交易员管理
                         </a>
                     </li>
@@ -61,7 +61,7 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/users">
+                        <a class="nav-link active" href="/users">
                             <i class="bi bi-person-badge"></i> 用户管理
                         </a>
                     </li>
@@ -71,10 +71,15 @@
 
         <main class="col-md-10 ms-sm-auto px-md-4">
             <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                <h1 class="h2"><i class="bi bi-people"></i> 交易员管理</h1>
-                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addTraderModal">
-                    <i class="bi bi-plus-circle"></i> 添加交易员
+                <h1 class="h2"><i class="bi bi-person-badge"></i> 用户管理</h1>
+                <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addUserModal">
+                    <i class="bi bi-plus-circle"></i> 添加用户
                 </button>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>提示：</strong>只有超级管理员（ADMIN）可以访问此页面并管理用户。
             </div>
 
             <div class="table-responsive">
@@ -82,14 +87,14 @@
                     <thead>
                     <tr>
                         <th>ID</th>
-                        <th>交易员ID</th>
-                        <th>Portfolio ID</th>
-                        <th>名称</th>
+                        <th>用户名</th>
+                        <th>角色</th>
                         <th>状态</th>
+                        <th>创建时间</th>
                         <th>操作</th>
                     </tr>
                     </thead>
-                    <tbody id="traderList">
+                    <tbody id="userList">
                     <tr>
                         <td colspan="6" class="text-center text-muted">加载中...</td>
                     </tr>
@@ -100,39 +105,36 @@
     </div>
 </div>
 
-<!-- 添加交易员模态框 -->
-<div class="modal fade" id="addTraderModal" tabindex="-1">
+<!-- 添加用户模态框 -->
+<div class="modal fade" id="addUserModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">添加交易员</h5>
+                <h5 class="modal-title">添加用户</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="addTraderForm">
+                <form id="addUserForm">
                     <div class="mb-3">
-                        <label class="form-label">交易员ID</label>
-                        <input type="text" class="form-control" id="traderId" required>
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Portfolio ID</label>
-                        <input type="text" class="form-control" id="portfolioId" required>
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">名称</label>
-                        <input type="text" class="form-control" id="name" required>
-                    </div>
-                    <div class="mb-3">
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" id="enabled" checked>
-                            <label class="form-check-label" for="enabled">启用</label>
-                        </div>
+                        <label class="form-label">角色</label>
+                        <select class="form-select" id="role" required>
+                            <option value="USER">普通用户</option>
+                            <option value="ADMIN">管理员</option>
+                        </select>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="addTrader()">添加</button>
+                <button type="button" class="btn btn-primary" onclick="addUser()">添加</button>
             </div>
         </div>
     </div>
@@ -141,71 +143,72 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
-    async function loadTraders() {
+    async function loadUsers() {
         try {
-            const response = await axios.get('/api/trader-config/list');
-            const traders = response.data;
-            const tbody = document.getElementById('traderList');
+            const response = await axios.get('/api/users/list');
+            const users = response.data;
+            const tbody = document.getElementById('userList');
 
-            if (traders.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">暂无交易员</td></tr>';
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted">暂无用户</td></tr>';
                 return;
             }
 
-            tbody.innerHTML = traders.map(trader => `
+            tbody.innerHTML = users.map(user => `
                     <tr>
-                        <td>${trader.id}</td>
-                        <td>${trader.traderId}</td>
-                        <td>${trader.portfolioId}</td>
-                        <td>${trader.name}</td>
-                        <td><span class="badge bg-${trader.enabled ? 'success' : 'secondary'}">${trader.enabled ? '已启用' : '已禁用'}</span></td>
+                        <td>${user.id}</td>
+                        <td>${user.username}</td>
+                        <td><span class="badge bg-${user.role === 'ADMIN' ? 'danger' : 'primary'}">${user.role === 'ADMIN' ? '管理员' : '普通用户'}</span></td>
+                        <td><span class="badge bg-${user.enabled ? 'success' : 'secondary'}">${user.enabled ? '已启用' : '已禁用'}</span></td>
+                        <td>${user.createdAt || '-'}</td>
                         <td>
-                            <button class="btn btn-sm btn-danger" onclick="deleteTrader('${trader.traderId}')">
+                            <button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})" ${user.role === 'ADMIN' ? 'disabled' : ''}>
                                 <i class="bi bi-trash"></i> 删除
                             </button>
                         </td>
                     </tr>
                 `).join('');
         } catch (error) {
-            console.error('加载交易员列表失败:', error);
-            alert('加载交易员列表失败');
+            console.error('加载用户列表失败:', error);
+            alert('加载用户列表失败');
         }
     }
 
-    async function addTrader() {
+    async function addUser() {
         const data = {
-            traderId: document.getElementById('traderId').value,
-            portfolioId: document.getElementById('portfolioId').value,
-            name: document.getElementById('name').value,
-            enabled: document.getElementById('enabled').checked
+            username: document.getElementById('username').value,
+            password: document.getElementById('password').value,
+            role: document.getElementById('role').value
         };
 
         try {
-            await axios.post('/api/trader-config/add', data);
-            bootstrap.Modal.getInstance(document.getElementById('addTraderModal')).hide();
-            document.getElementById('addTraderForm').reset();
-            loadTraders();
-            alert('添加成功');
+            const response = await axios.post('/api/users/add', data);
+            if (response.data.success) {
+                bootstrap.Modal.getInstance(document.getElementById('addUserModal')).hide();
+                document.getElementById('addUserForm').reset();
+                loadUsers();
+                alert('添加成功');
+            }
         } catch (error) {
-            console.error('添加交易员失败:', error);
+            console.error('添加用户失败:', error);
             alert('添加失败: ' + (error.response?.data?.message || error.message));
         }
     }
 
-    async function deleteTrader(traderId) {
-        if (!confirm('确定要删除这个交易员吗？')) return;
+    async function deleteUser(id) {
+        if (!confirm('确定要删除这个用户吗？')) return;
 
         try {
-            await axios.delete(`/api/trader-config/delete/${traderId}`);
-            loadTraders();
+            await axios.delete(`/api/users/delete/${id}`);
+            loadUsers();
             alert('删除成功');
         } catch (error) {
-            console.error('删除交易员失败:', error);
+            console.error('删除用户失败:', error);
             alert('删除失败: ' + (error.response?.data?.message || error.message));
         }
     }
 
-    loadTraders();
+    loadUsers();
 </script>
 </body>
 </html>

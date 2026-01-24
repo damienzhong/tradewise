@@ -11,6 +11,11 @@ public class WebController {
         return "login";
     }
 
+    @GetMapping("/users")
+    public String users() {
+        return "users";
+    }
+
     @GetMapping("/")
     public String index() {
         return "redirect:/dashboard";
