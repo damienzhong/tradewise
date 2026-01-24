@@ -97,6 +97,7 @@ public class TradeWiseProperties {
     
     public static class Email {
         private String from;
+        private boolean enabled = true; // 是否启用邮件发送
         
         // Getters and Setters
         public String getFrom() {
@@ -105,6 +106,14 @@ public class TradeWiseProperties {
         
         public void setFrom(String from) {
             this.from = from;
+        }
+        
+        public boolean isEnabled() {
+            return enabled;
+        }
+        
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
     
