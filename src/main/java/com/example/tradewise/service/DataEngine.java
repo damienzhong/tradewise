@@ -28,6 +28,9 @@ public class DataEngine {
     @Autowired
     private TradeWiseProperties tradeWiseProperties;
 
+    @Autowired
+    private SymbolConfigService symbolConfigService;
+
     // 缓存最近的市场数据，避免重复请求
     private final Map<String, CachedMarketData> cachedData = new ConcurrentHashMap<>();
 
@@ -179,8 +182,15 @@ public class DataEngine {
     public void execute() {
         logger.info("开始执行数据引擎主逻辑");
 
-        // 1. 获取监控的交易对列表
-        String[] symbolsToMonitor = tradeWiseProperties.getMarketAnalysis().getSymbolsToMonitor();
+        // 1. 从数据库获取监控的交易对列表
+        List<String> symbolsToMonitor = symbolConfigService.getEnabledSymbolNames();
+        
+        if (symbolsToMonitor.isEmpty()) {
+            logger.warn("没有启用的币对，跳过数据引擎执行");
+            return;
+        }
+        
+        logger.info("开始分析 {} 个币对: {}", symbolsToMonitor.size(), symbolsToMonitor);
 
         for (String symbol : symbolsToMonitor) {
             try {
