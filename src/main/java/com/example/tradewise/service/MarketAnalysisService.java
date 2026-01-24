@@ -2020,6 +2020,11 @@ public class MarketAnalysisService {
                 return;
             }
 
+            if (!tradeWiseProperties.getEmail().isEnabled()) {
+                logger.info("邮件发送功能已禁用，跳过发送市场信号邮件通知");
+                return;
+            }
+
             // 从数据库获取启用的邮箱地址列表
             List<String> recipientEmails = emailService.getEmailAddressesFromDatabase();
 
@@ -2071,6 +2076,11 @@ public class MarketAnalysisService {
      * 发送合并的市场信号通知邮件
      */
     public void sendCombinedMarketSignalNotification(List<TradingSignal> allSignals) {
+        if (!tradeWiseProperties.getEmail().isEnabled()) {
+            logger.info("邮件发送功能已禁用，跳过发送合并市场信号邮件通知");
+            return;
+        }
+        
         if (allSignals.isEmpty()) {
             return;
         }
