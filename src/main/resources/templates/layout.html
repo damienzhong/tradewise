@@ -46,6 +46,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" th:classappend="${#strings.equals(page, 'symbols')} ? 'active'" href="/symbol-config">
+                            <i class="bi bi-coin"></i> 币对管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" th:classappend="${#strings.equals(page, 'features')} ? 'active'" href="/features">
                             <i class="bi bi-toggles"></i> 功能开关
                         </a>
