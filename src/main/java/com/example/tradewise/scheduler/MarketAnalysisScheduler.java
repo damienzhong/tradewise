@@ -53,6 +53,9 @@ public class MarketAnalysisScheduler {
     @Autowired
     private MarketDataService marketDataService; // 注入市场数据服务
 
+    @Autowired
+    private com.example.tradewise.service.SymbolConfigService symbolConfigService; // 注入币对配置服务
+
     /**
      * 每15分钟执行一次标准市场分析，生成交易信号
      * 这个调度器会定期分析市场数据并生成交易信号
@@ -162,8 +165,16 @@ public class MarketAnalysisScheduler {
      * @param analysisType 分析类型（标准/快速）
      */
     private void performMarketAnalysis(String analysisType) {
-        String[] symbolsToMonitor = tradeWiseProperties.getMarketAnalysis().getSymbolsToMonitor();
+        // 从数据库获取启用的币对列表
+        List<String> symbolsToMonitor = symbolConfigService.getEnabledSymbolNames();
+        
+        if (symbolsToMonitor.isEmpty()) {
+            logger.warn("没有启用的币对，跳过市场分析");
+            return;
+        }
 
+        logger.info("开始分析 {} 个币对: {}", symbolsToMonitor.size(), symbolsToMonitor);
+        
         // 1. 收集多时间框架数据
         java.util.Map<String, List<Candlestick>> candlesticksMap = new java.util.HashMap<>();
         java.util.Map<String, java.util.Map<String, List<Candlestick>>> multiTimeframeDataMap = new java.util.HashMap<>();
