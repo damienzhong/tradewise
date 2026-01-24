@@ -1,5 +1,6 @@
 package com.example.tradewise.service;
 
+import com.example.tradewise.config.TradeWiseProperties;
 import com.example.tradewise.entity.EmailConfig;
 import com.example.tradewise.entity.Order;
 import com.example.tradewise.mapper.EmailConfigMapper;
@@ -36,10 +37,17 @@ public class EmailService {
     @Autowired
     private EmailConfigService emailConfigService;
 
+    @Autowired
+    private TradeWiseProperties tradeWiseProperties;
+
     @Value("${spring.mail.username}")
     private String senderEmail;
 
     public void sendNewOrdersNotification(List<Order> newOrders, String traderName) {
+        if (!tradeWiseProperties.getEmail().isEnabled()) {
+            logger.info("邮件发送功能已禁用，跳过发送邮件通知");
+            return;
+        }
         try {
             sendNewOrdersNotificationWithQualityAssessment(newOrders, traderName, null);
         } catch (Exception e) {
