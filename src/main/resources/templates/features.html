@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>功能开关 - TradeWise</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { padding-top: 56px; }
+        .sidebar { position: fixed; top: 56px; bottom: 0; left: 0; z-index: 100; padding: 48px 0 0; box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1); width: 240px; }
+        .sidebar-sticky { position: relative; top: 0; height: calc(100vh - 48px); padding-top: .5rem; overflow-x: hidden; overflow-y: auto; }
+        main { margin-left: 240px; }
+        .nav-link { color: #333; }
+        .nav-link.active { color: #0d6efd; background-color: rgba(13, 110, 253, .1); }
+        .nav-link:hover { color: #0d6efd; }
+        .feature-card { transition: all 0.3s; }
+        .feature-card:hover { box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard">
+            <i class="bi bi-graph-up-arrow"></i> TradeWise 监控系统
+        </a>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/dashboard">
+                            <i class="bi bi-speedometer2"></i> 仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/traders">
+                            <i class="bi bi-people"></i> 交易员管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/emails">
+                            <i class="bi bi-envelope"></i> 邮箱管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/features">
+                            <i class="bi bi-toggles"></i> 功能开关
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/system">
+                            <i class="bi bi-gear"></i> 系统状态
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-toggles"></i> 功能开关</h1>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-4">
+                    <div class="card feature-card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="bi bi-graph-up"></i> 交易员跟单功能</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">监控指定交易员的订单，并在有新订单时发送邮件通知。</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>当前状态: <strong id="copyTradingStatus" class="text-muted">加载中...</strong></span>
+                                <button id="copyTradingBtn" class="btn btn-primary" onclick="toggleCopyTrading()">
+                                    <i class="bi bi-toggle-on"></i> 切换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-4">
+                    <div class="card feature-card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="bi bi-bar-chart"></i> 市场行情分析功能</h5>
+                        </div>
+                        <div class="card-body">
+                            <p class="card-text">基于技术指标（EMA、RSI、布林带等）自动分析市场行情并生成交易信号。</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span>当前状态: <strong id="marketAnalysisStatus" class="text-muted">加载中...</strong></span>
+                                <button id="marketAnalysisBtn" class="btn btn-success" onclick="toggleMarketAnalysis()">
+                                    <i class="bi bi-toggle-on"></i> 切换
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i>
+                <strong>提示：</strong>功能开关会立即生效，无需重启服务。禁用功能后，相关的定时任务将停止执行。
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script>
+    async function loadFeatureStatus() {
+        try {
+            const response = await axios.get('/api/features/status');
+            const data = response.data;
+
+            updateStatus('copyTrading', data.copyTradingEnabled);
+            updateStatus('marketAnalysis', data.marketAnalysisEnabled);
+        } catch (error) {
+            console.error('加载功能状态失败:', error);
+            alert('加载功能状态失败');
+        }
+    }
+
+    function updateStatus(feature, enabled) {
+        const statusEl = document.getElementById(`${feature}Status`);
+        const btnEl = document.getElementById(`${feature}Btn`);
+
+        statusEl.textContent = enabled ? '已启用' : '已禁用';
+        statusEl.className = enabled ? 'text-success' : 'text-secondary';
+        btnEl.className = enabled ? 'btn btn-danger' : 'btn btn-success';
+        btnEl.innerHTML = enabled ? '<i class="bi bi-toggle-off"></i> 禁用' : '<i class="bi bi-toggle-on"></i> 启用';
+    }
+
+    async function toggleCopyTrading() {
+        const statusEl = document.getElementById('copyTradingStatus');
+        const currentEnabled = statusEl.textContent === '已启用';
+
+        try {
+            await axios.post(`/api/features/copy-trading/toggle?enabled=${!currentEnabled}`);
+            updateStatus('copyTrading', !currentEnabled);
+            alert(`交易员跟单功能已${!currentEnabled ? '启用' : '禁用'}`);
+        } catch (error) {
+            console.error('切换功能失败:', error);
+            alert('切换功能失败: ' + (error.response?.data?.message || error.message));
+        }
+    }
+
+    async function toggleMarketAnalysis() {
+        const statusEl = document.getElementById('marketAnalysisStatus');
+        const currentEnabled = statusEl.textContent === '已启用';
+
+        try {
+            await axios.post(`/api/features/market-analysis/toggle?enabled=${!currentEnabled}`);
+            updateStatus('marketAnalysis', !currentEnabled);
+            alert(`市场行情分析功能已${!currentEnabled ? '启用' : '禁用'}`);
+        } catch (error) {
+            console.error('切换功能失败:', error);
+            alert('切换功能失败: ' + (error.response?.data?.message || error.message));
+        }
+    }
+
+    loadFeatureStatus();
+</script>
+</body>
+</html>
