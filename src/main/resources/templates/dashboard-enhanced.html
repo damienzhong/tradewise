@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>仪表盘 - TradeWise</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { padding-top: 56px; }
+        .sidebar { position: fixed; top: 56px; bottom: 0; left: 0; z-index: 100; padding: 48px 0 0; box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1); width: 240px; }
+        .sidebar-sticky { position: relative; top: 0; height: calc(100vh - 48px); padding-top: .5rem; overflow-x: hidden; overflow-y: auto; }
+        main { margin-left: 240px; }
+        .nav-link { color: #333; }
+        .nav-link.active { color: #0d6efd; background-color: rgba(13, 110, 253, .1); }
+        .nav-link:hover { color: #0d6efd; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .signal-buy { color: #28a745; font-weight: bold; }
+        .signal-sell { color: #dc3545; font-weight: bold; }
+        .health-healthy { color: #28a745; }
+        .health-warning { color: #ffc107; }
+        .health-error { color: #dc3545; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard">
+            <i class="bi bi-graph-up-arrow"></i> TradeWise 监控系统
+        </a>
+        <button type="button" class="btn btn-outline-light btn-sm" onclick="refreshDashboard()">
+            <i class="bi bi-arrow-clockwise"></i> 刷新
+        </button>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <nav class="col-md-2 d-md-block bg-light sidebar">
+            <div class="sidebar-sticky">
+                <ul class="nav flex-column">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/dashboard">
+                            <i class="bi bi-speedometer2"></i> 仪表盘
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/signals">
+                            <i class="bi bi-graph-up"></i> 信号历史
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/traders">
+                            <i class="bi bi-people"></i> 交易员管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/emails">
+                            <i class="bi bi-envelope"></i> 邮箱管理
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/symbol-config">
+                            <i class="bi bi-coin"></i> 交易对配置
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/features">
+                            <i class="bi bi-toggles"></i> 功能开关
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/system">
+                            <i class="bi bi-gear"></i> 系统设置
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/users">
+                            <i class="bi bi-person-badge"></i> 用户管理
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-speedometer2"></i> 仪表盘</h1>
+                <div class="text-muted">
+                    <small>最后更新: <span id="lastUpdate">-</span></small>
+                </div>
+            </div>
+
+            <!-- 今日统计卡片 -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card border-primary">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">今日信号</h6>
+                            <h2 class="mb-0 text-primary" id="todaySignals">-</h2>
+                            <small class="text-muted">
+                                买入: <span id="buySignals">-</span> | 卖出: <span id="sellSignals">-</span>
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-success">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">胜率</h6>
+                            <h2 class="mb-0 text-success" id="winRate">-</h2>
+                            <small class="text-muted">近30天统计</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-info">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">活跃交易员</h6>
+                            <h2 class="mb-0 text-info" id="activeTraders">-</h2>
+                            <small class="text-muted">今日订单: <span id="todayOrders">-</span></small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-warning">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">系统健康</h6>
+                            <h2 class="mb-0" id="systemHealth">-</h2>
+                            <small class="text-muted">成功率: <span id="successRate">-</span></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TOP交易对 -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-trophy"></i> TOP 5 活跃交易对
+                        </div>
+                        <div class="card-body">
+                            <div id="topSymbols">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <i class="bi bi-activity"></i> 功能状态
+                        </div>
+                        <div class="card-body">
+                            <div id="featureStatus">加载中...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 最新信号 -->
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                            <span><i class="bi bi-bell"></i> 最新信号</span>
+                            <a href="/signals" class="btn btn-sm btn-light">查看全部</a>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>时间</th>
+                                            <th>交易对</th>
+                                            <th>类型</th>
+                                            <th>价格</th>
+                                            <th>评分</th>
+                                            <th>置信度</th>
+                                            <th>状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="recentSignals">
+                                        <tr>
+                                            <td colspan="7" class="text-center">加载中...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // 加载仪表盘数据
+    async function loadDashboard() {
+        try {
+            // 加载今日统计
+            const todayStats = await fetch('/api/dashboard/today-stats').then(r => r.json());
+            document.getElementById('todaySignals').textContent = todayStats.todaySignals || 0;
+            document.getElementById('buySignals').textContent = todayStats.buySignals || 0;
+            document.getElementById('sellSignals').textContent = todayStats.sellSignals || 0;
+            document.getElementById('winRate').textContent = todayStats.winRate ? todayStats.winRate.toFixed(2) + '%' : '0%';
+            document.getElementById('activeTraders').textContent = todayStats.activeTraders || 0;
+            document.getElementById('todayOrders').textContent = todayStats.todayOrders || 0;
+            
+            const healthClass = todayStats.systemHealth === 'HEALTHY' ? 'health-healthy' : 
+                               todayStats.systemHealth === 'WARNING' ? 'health-warning' : 'health-error';
+            document.getElementById('systemHealth').innerHTML = `<span class="${healthClass}">${todayStats.systemHealth || '-'}</span>`;
+            document.getElementById('successRate').textContent = todayStats.successRate ? todayStats.successRate.toFixed(2) + '%' : '-';
+
+            // 加载TOP交易对
+            const topSymbols = await fetch('/api/dashboard/top-symbols?limit=5').then(r => r.json());
+            if (topSymbols.length > 0) {
+                document.getElementById('topSymbols').innerHTML = topSymbols.map((item, index) => `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span><strong>${index + 1}. ${item.symbol}</strong></span>
+                        <span class="badge bg-primary">${item.count} 信号</span>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('topSymbols').innerHTML = '<p class="text-muted mb-0">暂无数据</p>';
+            }
+
+            // 加载功能状态
+            const features = await fetch('/api/features/status').then(r => r.json());
+            document.getElementById('featureStatus').innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span><i class="bi bi-people"></i> 交易员跟单</span>
+                    <span class="badge ${features.copyTradingEnabled ? 'bg-success' : 'bg-secondary'}">
+                        ${features.copyTradingEnabled ? '已启用' : '已禁用'}
+                    </span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center">
+                    <span><i class="bi bi-bar-chart"></i> 市场分析</span>
+                    <span class="badge ${features.marketAnalysisEnabled ? 'bg-success' : 'bg-secondary'}">
+                        ${features.marketAnalysisEnabled ? '已启用' : '已禁用'}
+                    </span>
+                </div>
+            `;
+
+            // 加载最新信号
+            const recentSignals = await fetch('/api/dashboard/recent-signals?limit=10').then(r => r.json());
+            if (recentSignals.length > 0) {
+                document.getElementById('recentSignals').innerHTML = recentSignals.map(signal => `
+                    <tr>
+                        <td>${new Date(signal.signalTime).toLocaleString('zh-CN', {month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit'})}</td>
+                        <td><strong>${signal.symbol}</strong></td>
+                        <td><span class="signal-${signal.signalType.toLowerCase()}">${signal.signalType === 'BUY' ? '买入' : '卖出'}</span></td>
+                        <td>${signal.price}</td>
+                        <td><span class="badge bg-info">${signal.score}</span></td>
+                        <td><span class="badge bg-secondary">${signal.confidence || '-'}</span></td>
+                        <td>${translateStatus(signal.status)}</td>
+                    </tr>
+                `).join('');
+            } else {
+                document.getElementById('recentSignals').innerHTML = '<tr><td colspan="7" class="text-center text-muted">暂无信号</td></tr>';
+            }
+
+            // 更新时间
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN');
+
+        } catch (error) {
+            console.error('加载仪表盘数据失败:', error);
+        }
+    }
+
+    function translateStatus(status) {
+        const statusMap = {
+            'PENDING': '待确认',
+            'ACTIVE': '活跃',
+            'CLOSED': '已关闭',
+            'EXPIRED': '已过期'
+        };
+        return statusMap[status] || status;
+    }
+
+    function refreshDashboard() {
+        loadDashboard();
+    }
+
+    // 初始加载
+    loadDashboard();
+    
+    // 每30秒自动刷新
+    setInterval(loadDashboard, 30000);
+</script>
+</body>
+</html>
