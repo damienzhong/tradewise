@@ -235,10 +235,10 @@ public class MarketAnalysisScheduler {
                 TradingSignal enhanced = highQualitySignalEnhancer.enhanceSignal(signal, candlesticks, mtfData);
                 if (enhanced != null && enhanced.getScore() >= 6) {
                     enhancedSignals.add(enhanced);
-                    signalMonitorService.recordEnhancedSignals(enhanced.getSymbol(), 1, enhanced.getScore());
+                    signalMonitorService.recordEnhancedSignals(enhanced.getSymbol(), 1, enhanced.getScore(), enhanced.getSignalLevel());
                 } else if (enhanced != null) {
                     // 记录所有评分的信号，包括<6分的
-                    signalMonitorService.recordEnhancedSignals(enhanced.getSymbol(), 1, enhanced.getScore());
+                    signalMonitorService.recordEnhancedSignals(enhanced.getSymbol(), 1, enhanced.getScore(), enhanced.getSignalLevel());
                 }
             }
         }
@@ -252,6 +252,11 @@ public class MarketAnalysisScheduler {
         for (TradingSignal signal : filteredSignals) {
             signalMonitorService.recordFilteredSignals(signal.getSymbol(), 1);
         }
+        
+        logger.info("信号级别分布: LEVEL_1={}, LEVEL_2={}, LEVEL_3={}",
+            enhancedSignals.stream().filter(s -> "LEVEL_1".equals(s.getSignalLevel())).count(),
+            enhancedSignals.stream().filter(s -> "LEVEL_2".equals(s.getSignalLevel())).count(),
+            enhancedSignals.stream().filter(s -> "LEVEL_3".equals(s.getSignalLevel())).count());
 
         // 5. 持久化所有增强信号到数据库
         if (!enhancedSignals.isEmpty()) {
