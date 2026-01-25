@@ -16,6 +16,9 @@ public class SystemHealthController {
     @Autowired
     private SystemHealthService systemHealthService;
 
+    @Autowired
+    private com.example.tradewise.service.SystemAlertService systemAlertService;
+
     /**
      * 获取系统健康状态
      */
@@ -85,5 +88,16 @@ public class SystemHealthController {
         stats.put("uptimeMinutes", status.getUptimeMinutes());
         
         return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * 获取错误统计信息
+     */
+    @GetMapping("/errors")
+    public ResponseEntity<java.util.Map<String, Object>> getErrorStatistics() {
+        java.util.Map<String, Object> response = new java.util.HashMap<>();
+        response.put("errorCounters", systemAlertService.getErrorStatistics());
+        response.put("timestamp", java.time.LocalDateTime.now());
+        return ResponseEntity.ok(response);
     }
 }
