@@ -45,4 +45,9 @@ public class WebController {
     public String system() {
         return "system";
     }
+
+    @GetMapping("/signals")
+    public String signals() {
+        return "signals";
+    }
 }
