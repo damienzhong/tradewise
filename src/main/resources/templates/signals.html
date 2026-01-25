@@ -40,57 +40,17 @@
     <div class="container-fluid">
         <div class="row">
             <!-- 侧边栏 -->
-            <nav class="col-md-2 d-md-block bg-light sidebar">
-                <div class="sidebar-sticky">
-                    <ul class="nav flex-column">
-                        <li class="nav-item">
-                            <a class="nav-link" href="/dashboard">
-                                <i class="bi bi-speedometer2"></i> 仪表盘
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link active" href="/signals">
-                                <i class="bi bi-graph-up"></i> 信号历史
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/traders">
-                                <i class="bi bi-people"></i> 交易员管理
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/emails">
-                                <i class="bi bi-envelope"></i> 邮箱管理
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/symbol-config">
-                                <i class="bi bi-coin"></i> 交易对配置
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/features">
-                                <i class="bi bi-toggles"></i> 功能开关
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/system">
-                                <i class="bi bi-gear"></i> 系统设置
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/users">
-                                <i class="bi bi-person-badge"></i> 用户管理
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
+            <div th:replace="sidebar :: sidebar"></div>
 
             <!-- 主内容区 -->
             <main class="col-md-10 ms-sm-auto px-md-4">
                 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
                     <h1 class="h2"><i class="bi bi-graph-up"></i> 信号历史</h1>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/signal-monitor">
+                            <i class="bi bi-bar-chart-line"></i> 信号监控
+                        </a>
                 </div>
 
                 <!-- 筛选器 -->
