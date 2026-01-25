@@ -54,4 +54,22 @@ public class UserService implements UserDetailsService {
     public User findByUsername(String username) {
         return userMapper.findByUsername(username);
     }
+
+    /**
+     * 用户认证
+     */
+    public User authenticate(String username, String password) {
+        User user = userMapper.findByUsername(username);
+        
+        if (user == null || !user.getEnabled()) {
+            return null;
+        }
+        
+        // 验证密码
+        if (passwordEncoder.matches(password, user.getPassword())) {
+            return user;
+        }
+        
+        return null;
+    }
 }
