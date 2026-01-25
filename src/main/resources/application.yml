@@ -55,12 +55,6 @@ tradewise:
   # 市场分析配置
   market-analysis:
     enabled: true  # 是否启用市场分析功能
-    symbols-to-monitor:  # 要监控的交易对
-      - BTCUSDT
-      - ETHUSDT
-      - BNBUSDT
-      - SOLUSDT
-      - LTCUSDT
     interval: 1h  # K线周期
     limit: 200    # 获取K线的数量
     analysis-interval-minutes: 15  # 标准交易信号分析间隔（分钟），每15分钟执行一次
@@ -79,11 +73,11 @@ tradewise:
     min-volume-ratio: 1.2 # 最小成交量比率
     trend-strength-period: 50  # 趋势强度计算周期
     # 信号生成参数
-    signal-confirmation-threshold: 2  # 信号确认阈值，至少需要多少个指标确认（1=宽松,2=适中,3=严格）
+    signal-confirmation-threshold: 1  # 信号确认阈值，至少需要多少个指标确认（1=宽松,2=适中,3=严格）
     signal-frequency-control:
-      level-1-threshold: 8    # LEVEL_1信号最低评分阈值
-      level-2-threshold: 6    # LEVEL_2信号最低评分阈值
-      level-3-threshold: 4    # LEVEL_3信号最低评分阈值
+      level-1-threshold: 7    # LEVEL_1信号最低评分阈值
+      level-2-threshold: 4    # LEVEL_2信号最低评分阈值
+      level-3-threshold: 2    # LEVEL_3信号最低评分阈值
     # 新增：数据引擎参数
     data-engine-enabled: true  # 是否启用数据引擎
     multi-timeframe-analysis:

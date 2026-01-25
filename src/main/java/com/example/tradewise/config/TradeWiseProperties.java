@@ -189,14 +189,6 @@ public class TradeWiseProperties {
             this.signalFrequencyControl = signalFrequencyControl;
         }
         
-        public String[] getSymbolsToMonitor() {
-            return symbolsToMonitor;
-        }
-        
-        public void setSymbolsToMonitor(String[] symbolsToMonitor) {
-            this.symbolsToMonitor = symbolsToMonitor;
-        }
-        
         public String getInterval() {
             return interval;
         }
