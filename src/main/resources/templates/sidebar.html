@@ -1,5 +1,5 @@
 <!-- 统一侧边栏菜单 -->
-<nav class="col-md-2 d-md-block bg-light sidebar">
+<nav class="col-md-2 d-md-block bg-light sidebar" th:fragment="sidebar">
     <div class="sidebar-sticky">
         <ul class="nav flex-column">
             <li class="nav-item">
@@ -10,6 +10,11 @@
             <li class="nav-item">
                 <a class="nav-link" th:classappend="${activePage == 'signals' ? 'active' : ''}" href="/signals">
                     <i class="bi bi-graph-up"></i> 信号历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'signal-monitor' ? 'active' : ''}" href="/signal-monitor">
+                    <i class="bi bi-bar-chart-line"></i> 信号监控
                 </a>
             </li>
             <li class="nav-item">
