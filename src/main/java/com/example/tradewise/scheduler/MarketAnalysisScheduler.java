@@ -56,6 +56,12 @@ public class MarketAnalysisScheduler {
     @Autowired
     private com.example.tradewise.service.SymbolConfigService symbolConfigService; // 注入币对配置服务
 
+    @Autowired
+    private com.example.tradewise.service.SystemAlertService systemAlertService; // 注入系统告警服务
+
+    @Autowired
+    private com.example.tradewise.service.SignalPersistenceService signalPersistenceService; // 注入信号持久化服务
+
     /**
      * 每15分钟执行一次标准市场分析，生成交易信号
      * 这个调度器会定期分析市场数据并生成交易信号
@@ -76,6 +82,10 @@ public class MarketAnalysisScheduler {
             logger.info("完成标准市场行情分析任务");
         } catch (Exception e) {
             logger.error("执行标准市场行情分析任务时发生错误", e);
+            
+            // 记录系统异常
+            systemAlertService.recordSystemException("MarketAnalysisScheduler", 
+                "标准市场分析任务失败", e);
         }
     }
 
@@ -98,6 +108,10 @@ public class MarketAnalysisScheduler {
             logger.info("完成快速市场行情分析任务");
         } catch (Exception e) {
             logger.error("执行快速市场行情分析任务时发生错误", e);
+            
+            // 记录系统异常
+            systemAlertService.recordSystemException("MarketAnalysisScheduler", 
+                "快速市场分析任务失败", e);
         }
     }
 
@@ -227,7 +241,12 @@ public class MarketAnalysisScheduler {
         // 4. 应用信号过滤器（每日限额和冷却）
         List<TradingSignal> filteredSignals = signalFilterService.filterSignalsForImmediateSend(enhancedSignals);
 
-        // 5. 发送高质量信号
+        // 5. 持久化所有增强信号到数据库
+        if (!enhancedSignals.isEmpty()) {
+            signalPersistenceService.saveSignals(enhancedSignals);
+        }
+
+        // 6. 发送高质量信号
         if (!filteredSignals.isEmpty()) {
             marketAnalysisService.sendCombinedMarketSignalNotification(filteredSignals);
             marketAnalysisService.recordSignalPerformance(filteredSignals);
