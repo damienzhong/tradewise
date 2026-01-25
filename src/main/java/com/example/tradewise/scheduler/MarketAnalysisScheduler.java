@@ -10,6 +10,7 @@ import com.example.tradewise.service.SignalFilterService;
 import com.example.tradewise.service.DailySummaryService;
 import com.example.tradewise.service.HighQualitySignalEnhancer;
 import com.example.tradewise.service.MarketDataService;
+import com.example.tradewise.service.SignalMonitorService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,7 +19,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -60,13 +60,16 @@ public class MarketAnalysisScheduler {
     private com.example.tradewise.service.SystemAlertService systemAlertService; // 注入系统告警服务
 
     @Autowired
-    private com.example.tradewise.service.SignalPersistenceService signalPersistenceService; // 注入信号持久化服务
+    private com.example.tradewise.service.SignalPersistenceService signalPersistenceService;
+
+    @Autowired
+    private SignalMonitorService signalMonitorService;
 
     /**
      * 每15分钟执行一次标准市场分析，生成交易信号
      * 这个调度器会定期分析市场数据并生成交易信号
      */
-    @Scheduled(cron = "0 */15 * * * ?") // 每15分钟执行一次
+    @Scheduled(cron = "0 * * * * ?") // 每1分钟执行一次
     public void analyzeMarket() {
         // 检查市场分析功能是否启用
         if (!tradeWiseProperties.getMarketAnalysis().isEnabled()) {
@@ -215,6 +218,8 @@ public class MarketAnalysisScheduler {
             List<TradingSignal> signals = marketAnalysisService.generateSignalsForSymbol(symbol, true);
             if (signals != null && !signals.isEmpty()) {
                 allSignals.addAll(signals);
+                logger.debug("记录原始信号: {} - {}个", symbol, signals.size());
+                signalMonitorService.recordRawSignals(symbol, signals.size());
             }
         }
 
@@ -230,6 +235,10 @@ public class MarketAnalysisScheduler {
                 TradingSignal enhanced = highQualitySignalEnhancer.enhanceSignal(signal, candlesticks, mtfData);
                 if (enhanced != null && enhanced.getScore() >= 6) {
                     enhancedSignals.add(enhanced);
+                    signalMonitorService.recordEnhancedSignals(enhanced.getSymbol(), 1, enhanced.getScore());
+                } else if (enhanced != null) {
+                    // 记录所有评分的信号，包括<6分的
+                    signalMonitorService.recordEnhancedSignals(enhanced.getSymbol(), 1, enhanced.getScore());
                 }
             }
         }
@@ -240,6 +249,9 @@ public class MarketAnalysisScheduler {
 
         // 4. 应用信号过滤器（每日限额和冷却）
         List<TradingSignal> filteredSignals = signalFilterService.filterSignalsForImmediateSend(enhancedSignals);
+        for (TradingSignal signal : filteredSignals) {
+            signalMonitorService.recordFilteredSignals(signal.getSymbol(), 1);
+        }
 
         // 5. 持久化所有增强信号到数据库
         if (!enhancedSignals.isEmpty()) {
@@ -250,9 +262,17 @@ public class MarketAnalysisScheduler {
         if (!filteredSignals.isEmpty()) {
             marketAnalysisService.sendCombinedMarketSignalNotification(filteredSignals);
             marketAnalysisService.recordSignalPerformance(filteredSignals);
+            for (TradingSignal signal : filteredSignals) {
+                String signalInfo = String.format("%s %s @ %.2f (Score: %d)",
+                    signal.getSignalType(), signal.getIndicator(), signal.getPrice(), signal.getScore());
+                signalMonitorService.recordSentSignal(signal.getSymbol(), signalInfo);
+            }
         }
 
         logger.info("完成{}市场行情分析: 原始{}个 → 高质量{}个 → 发送{}个",
                 analysisType, allSignals.size(), enhancedSignals.size(), filteredSignals.size());
+        
+        // 输出当前统计
+        logger.debug("当前统计: {}", signalMonitorService.getSummary());
     }
 }
