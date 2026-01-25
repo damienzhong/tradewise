@@ -46,6 +46,9 @@ public class OrderService {
     private SystemHealthService systemHealthService;  // 注入系统健康服务
 
     @Autowired
+    private com.example.tradewise.service.SystemAlertService systemAlertService; // 注入系统告警服务
+
+    @Autowired
     private com.example.tradewise.config.TradeWiseProperties tradeWiseProperties; // 注入配置属性
 
     @Autowired
@@ -101,6 +104,10 @@ public class OrderService {
                 );
             } catch (org.springframework.web.client.ResourceAccessException e) {
                 logger.error("API请求失败，交易员: {}，原因: {}", traderName, e.getMessage());
+                
+                // 记录API失败告警
+                systemAlertService.recordApiFailure("BinanceOrderHistory", 
+                    String.format("交易员: %s, 错误: %s", traderName, e.getMessage()));
 
                 // 如果还有重试次数，稍后重试
                 if (remainingRetries > 0) {
@@ -125,6 +132,9 @@ public class OrderService {
             // 记录成功的API调用
             long processingTime = System.currentTimeMillis() - methodStartTime;
             systemHealthService.recordSuccessfulApiCall(processingTime);
+            
+            // 重置API错误计数器
+            systemAlertService.resetErrorCounter("API_BinanceOrderHistory");
 
             // 获取响应体字节数组
             byte[] rawResponseBody = response.getBody();
@@ -236,6 +246,10 @@ public class OrderService {
             }
         } catch (Exception e) {
             logger.error("获取订单时发生错误，交易员: " + traderName, e);
+            
+            // 记录系统异常
+            systemAlertService.recordSystemException("OrderService", 
+                String.format("获取订单失败: %s", traderName), e);
 
             // 记录失败的API调用
             long processingTime = System.currentTimeMillis() - methodStartTime;
