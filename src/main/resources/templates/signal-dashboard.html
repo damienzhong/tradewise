@@ -210,6 +210,18 @@
         } else {
             scoreDiv.innerHTML = '';
         }
+        
+        // 显示级别分布
+        if (data.levelDistribution && Object.keys(data.levelDistribution).length > 0) {
+            const levels = Object.entries(data.levelDistribution)
+                .sort((a, b) => a[0].localeCompare(b[0]))
+                .map(([level, count]) => {
+                    const color = level === 'LEVEL_1' ? 'danger' : level === 'LEVEL_2' ? 'warning' : 'info';
+                    const name = level === 'LEVEL_1' ? '高优先级' : level === 'LEVEL_2' ? '中优先级' : '低优先级';
+                    return `<span class="badge bg-${color} me-1">${name}: ${count}个</span>`;
+                }).join('');
+            scoreDiv.innerHTML += '<br><small class="text-muted">级别分布: </small>' + levels;
+        }
     }
 
     function updateSymbolTable(stats) {
