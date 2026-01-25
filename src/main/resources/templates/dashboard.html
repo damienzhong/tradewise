@@ -43,6 +43,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="/signals">
+                            <i class="bi bi-graph-up"></i> 信号历史
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="/traders">
                             <i class="bi bi-people"></i> 交易员管理
                         </a>
@@ -143,28 +148,46 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script>
     async function loadDashboard() {
         try {
+            // 使用fetch替代axios
             const [traders, emails, features, health] = await Promise.all([
-                axios.get('/api/trader-config/list'),
-                axios.get('/api/email-config/list'),
-                axios.get('/api/features/status'),
-                axios.get('/api/orders/health')
+                fetch('/api/trader-config/list').then(r => r.json()),
+                fetch('/api/email-config/list').then(r => r.json()),
+                fetch('/api/features/status').then(r => r.json()),
+                fetch('/api/system-health/status').then(r => r.json())
             ]);
 
-            document.getElementById('traderCount').textContent = traders.data.length;
-            document.getElementById('emailCount').textContent = emails.data.length;
-            document.getElementById('copyTradingStatus').textContent = features.data.copyTradingEnabled ? '已启用' : '已禁用';
-            document.getElementById('marketAnalysisStatus').textContent = features.data.marketAnalysisEnabled ? '已启用' : '已禁用';
+            document.getElementById('traderCount').textContent = traders.length;
+            document.getElementById('emailCount').textContent = emails.length;
+            document.getElementById('copyTradingStatus').textContent = features.copyTradingEnabled ? '已启用' : '已禁用';
+            document.getElementById('marketAnalysisStatus').textContent = features.marketAnalysisEnabled ? '已启用' : '已禁用';
 
+            const healthColor = health.overallHealth === 'HEALTHY' ? 'success' : 
+                               health.overallHealth === 'WARNING' ? 'warning' : 'danger';
             document.getElementById('systemHealth').innerHTML = `
-                    <p><strong>状态:</strong> <span class="badge bg-success">${health.data.status}</span></p>
-                    <p class="mb-0"><strong>运行时间:</strong> ${health.data.uptime || '未知'}</p>
+                    <p><strong>状态:</strong> <span class="badge bg-${healthColor}">${health.overallHealth}</span></p>
+                    <p><strong>运行时间:</strong> ${health.uptimeMinutes} 分钟</p>
+                    <p class="mb-0"><strong>成功率:</strong> ${health.successRate.toFixed(2)}%</p>
                 `;
 
-            document.getElementById('recentOrders').innerHTML = '<p class="text-muted">暂无最近订单数据</p>';
+            // 加载最新信号
+            const recentSignals = await fetch('/api/dashboard/recent-signals?limit=5').then(r => r.json());
+            if (recentSignals.length > 0) {
+                document.getElementById('recentOrders').innerHTML = recentSignals.map(signal => `
+                    <div class="mb-2 pb-2 border-bottom">
+                        <strong>${signal.symbol}</strong> - 
+                        <span class="${signal.signalType === 'BUY' ? 'text-success' : 'text-danger'}">
+                            ${signal.signalType === 'BUY' ? '买入' : '卖出'}
+                        </span>
+                        <br>
+                        <small class="text-muted">${new Date(signal.signalTime).toLocaleString('zh-CN')}</small>
+                    </div>
+                `).join('');
+            } else {
+                document.getElementById('recentOrders').innerHTML = '<p class="text-muted">暂无最近信号</p>';
+            }
         } catch (error) {
             console.error('加载仪表盘数据失败:', error);
         }
