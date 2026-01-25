@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>信号监控 - TradeWise</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { padding-top: 56px; }
+        .sidebar { position: fixed; top: 56px; bottom: 0; left: 0; z-index: 100; padding: 48px 0 0; box-shadow: inset -1px 0 0 rgba(0, 0, 0, .1); width: 240px; }
+        .sidebar-sticky { position: relative; top: 0; height: calc(100vh - 48px); padding-top: .5rem; overflow-x: hidden; overflow-y: auto; }
+        main { margin-left: 240px; }
+        .nav-link { color: #333; }
+        .nav-link.active { color: #0d6efd; background-color: rgba(13, 110, 253, .1); }
+        .nav-link:hover { color: #0d6efd; }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-5px); }
+        .pipeline-step { background: #f8f9fa; border-left: 4px solid #0d6efd; padding: 15px; margin-bottom: 10px; border-radius: 4px; }
+        .pipeline-arrow { text-align: center; color: #6c757d; font-size: 24px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-dark bg-dark fixed-top">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/dashboard">
+            <i class="bi bi-graph-up-arrow"></i> TradeWise 监控系统
+        </a>
+        <form method="post" action="/logout" style="margin: 0;">
+            <button type="submit" class="btn btn-outline-light btn-sm">
+                <i class="bi bi-box-arrow-right"></i> 退出
+            </button>
+        </form>
+    </div>
+</nav>
+
+<div class="container-fluid">
+    <div class="row">
+        <div th:replace="sidebar :: sidebar"></div>
+
+        <main class="col-md-10 ms-sm-auto px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2"><i class="bi bi-bar-chart-line"></i> 信号监控</h1>
+                <div>
+                    <span class="text-muted">自动刷新: <span id="countdown">30</span>秒 | 最后更新: <span id="lastUpdate">-</span></span>
+                    <button class="btn btn-primary btn-sm ms-2" onclick="loadData()">立即刷新</button>
+                </div>
+            </div>
+
+            <div id="alerts"></div>
+
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card stat-card border-warning">
+                        <div class="card-body">
+                            <h6 class="card-title text-warning">距上次信号</h6>
+                            <h2 class="mb-0" id="hoursSinceLastSignal">-</h2>
+                            <small class="text-muted">小时</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-primary">
+                        <div class="card-body">
+                            <h6 class="card-title text-primary">今日原始信号</h6>
+                            <h2 class="mb-0" id="totalRawSignals">-</h2>
+                            <small class="text-muted">个</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-success">
+                        <div class="card-body">
+                            <h6 class="card-title text-success">今日发送信号</h6>
+                            <h2 class="mb-0" id="totalSentSignals">-</h2>
+                            <small class="text-muted">个</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card stat-card border-danger">
+                        <div class="card-body">
+                            <h6 class="card-title text-danger">过滤率</h6>
+                            <h2 class="mb-0" id="filterRate">-</h2>
+                            <small class="text-muted">%</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <i class="bi bi-diagram-3"></i> 信号处理流水线
+                </div>
+                <div class="card-body">
+                    <div class="pipeline-step">
+                        <strong>1. 原始信号生成</strong>
+                        <h3 class="text-primary mb-0" id="pipeline-raw">0</h3>
+                        <small class="text-muted">基于技术指标生成的所有信号</small>
+                    </div>
+                    <div class="pipeline-arrow">↓</div>
+                    <div class="pipeline-step">
+                        <strong>2. 增强评分过滤</strong>
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="text-muted me-2">评分后总数:</span>
+                            <h4 class="text-info mb-0 me-3" id="pipeline-total-scored">0</h4>
+                            <span class="text-muted me-2">通过(≥4分):</span>
+                            <h4 class="text-success mb-0" id="pipeline-enhanced">0</h4>
+                        </div>
+                        <div id="scoreDistribution" class="mt-2"></div>
+                    </div>
+                    <div class="pipeline-arrow">↓</div>
+                    <div class="pipeline-step">
+                        <strong>3. 冷却&限额过滤</strong>
+                        <h3 class="text-primary mb-0" id="pipeline-filtered">0</h3>
+                        <small class="text-muted">通过冷却时间和每日限额检查</small>
+                    </div>
+                    <div class="pipeline-arrow">↓</div>
+                    <div class="pipeline-step">
+                        <strong>4. 邮件发送</strong>
+                        <h3 class="text-success mb-0" id="pipeline-sent">0</h3>
+                        <small class="text-muted">最终发送的邮件通知数量</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <i class="bi bi-table"></i> 各币对信号统计
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead>
+                                <tr>
+                                    <th>币对</th>
+                                    <th>原始信号</th>
+                                    <th>增强信号</th>
+                                    <th>过滤信号</th>
+                                    <th>已发送</th>
+                                    <th>过滤率</th>
+                                    <th>最后信号时间</th>
+                                </tr>
+                            </thead>
+                            <tbody id="symbolTableBody">
+                                <tr><td colspan="7" class="text-center text-muted">加载中...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let countdownTimer;
+    let countdown = 30;
+
+    async function loadData() {
+        try {
+            const [summary, allStats, alerts] = await Promise.all([
+                fetch('/api/diagnostic/stats/summary').then(r => r.json()),
+                fetch('/api/diagnostic/stats/all').then(r => r.json()),
+                fetch('/api/diagnostic/alerts').then(r => r.json())
+            ]);
+
+            updateSummary(summary);
+            updatePipeline(summary);
+            updateSymbolTable(allStats);
+            updateAlerts(alerts);
+            
+            document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('zh-CN');
+        } catch (error) {
+            console.error('加载数据失败:', error);
+        }
+    }
+
+    function updateSummary(data) {
+        document.getElementById('hoursSinceLastSignal').textContent = 
+            data.hoursSinceLastSignal !== null ? data.hoursSinceLastSignal : '∞';
+        document.getElementById('totalRawSignals').textContent = data.totalRawSignals || 0;
+        document.getElementById('totalSentSignals').textContent = data.totalSentSignals || 0;
+        document.getElementById('filterRate').textContent = (data.overallFilterRate || 0).toFixed(1);
+    }
+
+    function updatePipeline(data) {
+        document.getElementById('pipeline-raw').textContent = data.totalRawSignals || 0;
+        
+        // 计算评分后总数
+        let totalScored = 0;
+        if (data.scoreDistribution) {
+            totalScored = Object.values(data.scoreDistribution).reduce((a, b) => a + b, 0);
+        }
+        document.getElementById('pipeline-total-scored').textContent = totalScored;
+        document.getElementById('pipeline-enhanced').textContent = data.qualifiedSignals || 0;
+        
+        document.getElementById('pipeline-filtered').textContent = data.totalFilteredSignals || 0;
+        document.getElementById('pipeline-sent').textContent = data.totalSentSignals || 0;
+        
+        // 显示评分分布
+        const scoreDiv = document.getElementById('scoreDistribution');
+        if (data.scoreDistribution && Object.keys(data.scoreDistribution).length > 0) {
+            const scores = Object.entries(data.scoreDistribution)
+                .sort((a, b) => b[0] - a[0])
+                .map(([score, count]) => `<span class="badge bg-${score >= 7 ? 'success' : score >= 4 ? 'primary' : 'secondary'} me-1">${score}分: ${count}个</span>`)
+                .join('');
+            scoreDiv.innerHTML = '<small class="text-muted">评分明细: </small>' + scores;
+        } else {
+            scoreDiv.innerHTML = '';
+        }
+    }
+
+    function updateSymbolTable(stats) {
+        const tbody = document.getElementById('symbolTableBody');
+        if (Object.keys(stats).length === 0) {
+            tbody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">暂无数据</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = Object.entries(stats).map(([symbol, data]) => {
+            const filterRate = data.rawSignalsCount > 0 
+                ? ((1 - data.sentSignalsCount / data.rawSignalsCount) * 100).toFixed(1)
+                : '0.0';
+            const lastSignal = data.lastSignalTime 
+                ? new Date(data.lastSignalTime).toLocaleString('zh-CN')
+                : '-';
+            
+            return `
+                <tr>
+                    <td><strong>${symbol}</strong></td>
+                    <td>${data.rawSignalsCount || 0}</td>
+                    <td>${data.enhancedSignalsCount || 0}</td>
+                    <td>${data.filteredSignalsCount || 0}</td>
+                    <td>${data.sentSignalsCount || 0}</td>
+                    <td>${filterRate}%</td>
+                    <td>${lastSignal}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function updateAlerts(data) {
+        const alertsDiv = document.getElementById('alerts');
+        if (!data.hasAlerts) {
+            alertsDiv.innerHTML = '';
+            return;
+        }
+
+        alertsDiv.innerHTML = data.alerts.map(alert => {
+            const alertClass = alert.includes('告警') ? 'alert-danger' : 'alert-warning';
+            return `<div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                ${alert}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>`;
+        }).join('');
+    }
+
+    function startCountdown() {
+        countdown = 30;
+        if (countdownTimer) clearInterval(countdownTimer);
+        
+        countdownTimer = setInterval(() => {
+            countdown--;
+            document.getElementById('countdown').textContent = countdown;
+            
+            if (countdown <= 0) {
+                loadData();
+                countdown = 30;
+            }
+        }, 1000);
+    }
+
+    loadData();
+    startCountdown();
+</script>
+</body>
+</html>
