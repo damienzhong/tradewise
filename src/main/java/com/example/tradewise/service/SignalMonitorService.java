@@ -24,6 +24,7 @@ public class SignalMonitorService {
         private LocalDateTime lastSignalTime;
         private List<String> recentSignals = new ArrayList<>();
         private Map<Integer, Integer> scoreDistribution = new java.util.HashMap<>(); // 评分分布
+        private Map<String, Integer> levelDistribution = new java.util.HashMap<>(); // 信号级别分布
 
         public void addRecentSignal(String signalInfo) {
             recentSignals.add(signalInfo);
@@ -39,16 +40,20 @@ public class SignalMonitorService {
         public LocalDateTime getLastSignalTime() { return lastSignalTime; }
         public List<String> getRecentSignals() { return recentSignals; }
         public Map<Integer, Integer> getScoreDistribution() { return scoreDistribution; }
+        public Map<String, Integer> getLevelDistribution() { return levelDistribution; }
     }
 
     public void recordRawSignals(String symbol, int count) {
         getOrCreateStats(symbol).rawSignalsCount += count;
     }
 
-    public void recordEnhancedSignals(String symbol, int count, int score) {
+    public void recordEnhancedSignals(String symbol, int count, int score, String signalLevel) {
         SignalStats stats = getOrCreateStats(symbol);
         stats.enhancedSignalsCount += count;
         stats.scoreDistribution.put(score, stats.scoreDistribution.getOrDefault(score, 0) + count);
+        if (signalLevel != null) {
+            stats.levelDistribution.put(signalLevel, stats.levelDistribution.getOrDefault(signalLevel, 0) + count);
+        }
     }
 
     public void recordFilteredSignals(String symbol, int count) {
@@ -120,6 +125,16 @@ public class SignalMonitorService {
         }
         summary.put("scoreDistribution", totalScoreDistribution);
         summary.put("qualifiedSignals", qualifiedSignals);
+        
+        // 汇总信号级别分布
+        Map<String, Integer> totalLevelDistribution = new java.util.HashMap<>();
+        for (SignalStats stats : dailyStats.values()) {
+            for (Map.Entry<String, Integer> entry : stats.getLevelDistribution().entrySet()) {
+                totalLevelDistribution.put(entry.getKey(), 
+                    totalLevelDistribution.getOrDefault(entry.getKey(), 0) + entry.getValue());
+            }
+        }
+        summary.put("levelDistribution", totalLevelDistribution);
         
         return summary;
     }
