@@ -50,11 +50,8 @@ tradewise:
   # 邮箱配置
   email:
     from: ${spring.mail.username}
-    enabled: true  # 是否启用邮件发送，设置为false可在本地调试时禁用邮件
-    # 邮箱地址现在从数据库表 email_config 中读取
   # 市场分析配置
   market-analysis:
-    enabled: true  # 是否启用市场分析功能
     interval: 1h  # K线周期
     limit: 200    # 获取K线的数量
     analysis-interval-minutes: 15  # 标准交易信号分析间隔（分钟），每15分钟执行一次
@@ -76,7 +73,7 @@ tradewise:
     signal-confirmation-threshold: 1  # 信号确认阈值，至少需要多少个指标确认（1=宽松,2=适中,3=严格）
     signal-frequency-control:
       level-1-threshold: 7    # LEVEL_1信号最低评分阈值
-      level-2-threshold: 4    # LEVEL_2信号最低评分阈值
+      level-2-threshold: 5    # LEVEL_2信号最低评分阈值 (从4改为5)
       level-3-threshold: 2    # LEVEL_3信号最低评分阈值
     # 新增：数据引擎参数
     data-engine-enabled: true  # 是否启用数据引擎
@@ -87,8 +84,8 @@ tradewise:
       min-risk-reward-ratio: 1.5  # 最小风险回报比
       max-position-risk-percent: 2.0  # 最大单笔风险百分比
       cooldown-hours: 1  # 同币种信号冷却时间（小时）
-  # 交易员跟单配置
-  copy-trading:
-    enabled: true  # 是否启用交易员跟单功能
-  # 交易员配置现在完全从数据库表 trader_config 中读取
-  # 配置文件中的traders部分不再使用
+    # 信号过滤配置
+    signal-filter:
+      daily-limit: 50  # 每日最大信号数
+      cooldown-minutes: 30  # 信号冷却时间（分钟）
+ 
