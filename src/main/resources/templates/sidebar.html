@@ -1,0 +1,47 @@
+<!-- 统一侧边栏菜单 -->
+<nav class="col-md-2 d-md-block bg-light sidebar">
+    <div class="sidebar-sticky">
+        <ul class="nav flex-column">
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'dashboard' ? 'active' : ''}" href="/dashboard">
+                    <i class="bi bi-speedometer2"></i> 仪表盘
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'signals' ? 'active' : ''}" href="/signals">
+                    <i class="bi bi-graph-up"></i> 信号历史
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'traders' ? 'active' : ''}" href="/traders">
+                    <i class="bi bi-people"></i> 交易员管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'emails' ? 'active' : ''}" href="/emails">
+                    <i class="bi bi-envelope"></i> 邮箱管理
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'symbol-config' ? 'active' : ''}" href="/symbol-config">
+                    <i class="bi bi-coin"></i> 交易对配置
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'features' ? 'active' : ''}" href="/features">
+                    <i class="bi bi-toggles"></i> 功能开关
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'system' ? 'active' : ''}" href="/system">
+                    <i class="bi bi-gear"></i> 系统设置
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" th:classappend="${activePage == 'users' ? 'active' : ''}" href="/users">
+                    <i class="bi bi-person-badge"></i> 用户管理
+                </a>
+            </li>
+        </ul>
+    </div>
+</nav>
