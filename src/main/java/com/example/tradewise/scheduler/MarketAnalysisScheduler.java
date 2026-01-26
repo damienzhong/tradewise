@@ -69,7 +69,7 @@ public class MarketAnalysisScheduler {
      * 每15分钟执行一次标准市场分析，生成交易信号
      * 这个调度器会定期分析市场数据并生成交易信号
      */
-    @Scheduled(cron = "0 * * * * ?") // 每1分钟执行一次
+    @Scheduled(cron = "0 */15 * * * ?") // 每15分钟执行一次
     public void analyzeMarket() {
         // 检查市场分析功能是否启用
         if (!tradeWiseProperties.getMarketAnalysis().isEnabled()) {
