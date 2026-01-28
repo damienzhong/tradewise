@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>交易员列表 - TradeWise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .container { margin-left: 200px; margin-top: 60px; padding: 32px; transition: margin-left 0.3s ease; }
+        .container.sidebar-collapsed { margin-left: 0; }
+        
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .card h2 { margin-bottom: 20px; color: #333; }
+        
+        .trader-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 20px; }
+        .trader-card { background: white; border-radius: 8px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); border-left: 4px solid #667eea; transition: all 0.3s; }
+        .trader-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.15); transform: translateY(-2px); }
+        
+        .trader-header { display: flex; align-items: center; margin-bottom: 15px; }
+        .trader-avatar { width: 60px; height: 60px; border-radius: 50%; margin-right: 15px; object-fit: cover; }
+        .trader-info h3 { margin: 0; font-size: 18px; color: #333; }
+        .trader-info p { margin: 5px 0 0 0; font-size: 12px; color: #999; }
+        
+        .trader-stats { display: flex; gap: 15px; margin: 15px 0; }
+        .stat-item { flex: 1; text-align: center; padding: 10px; background: #f5f7fa; border-radius: 6px; }
+        .stat-item .label { font-size: 12px; color: #666; }
+        .stat-item .value { font-size: 18px; font-weight: 600; color: #333; margin-top: 5px; }
+        
+        .trader-actions { display: flex; gap: 10px; }
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.3s; }
+        .btn-primary { background: #667eea; color: white; flex: 1; }
+        .btn-secondary { background: #e0e0e0; color: #666; flex: 1; }
+        .btn:hover { opacity: 0.9; }
+        
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+        .pagination button { padding: 8px 12px; border: 1px solid #e0e0e0; background: white; cursor: pointer; border-radius: 4px; }
+        .pagination button.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+    </style>
+</head>
+<body data-page="traders">
+    <div th:replace="user/components/tw-user-sidebar :: ~{}"></div>
+    <div th:replace="user/components/tw-user-topbar :: ~{}"></div>
+    
+    <div class="container" id="mainContainer">
+        <h1 style="margin-bottom: 24px; color: #333;">👥 交易员列表</h1>
+        
+        <div class="card">
+            <h2>浏览交易员</h2>
+            <div class="trader-grid" id="traderGrid">
+                <div style="text-align: center; padding: 40px; grid-column: 1/-1;">加载中...</div>
+            </div>
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1;
+        
+        async function loadTraders(page = 1) {
+            const res = await fetch(`/user/subscriptions/traders?page=${page}&size=12`);
+            const data = await res.json();
+            
+            if (data.success) {
+                renderTraders(data.traders);
+                renderPagination(data.page, data.totalPages);
+                currentPage = page;
+            }
+        }
+        
+        function renderTraders(traders) {
+            const grid = document.getElementById('traderGrid');
+            
+            if (traders.length === 0) {
+                grid.innerHTML = '<div style="text-align: center; padding: 40px; grid-column: 1/-1; color: #999;">暂无交易员</div>';
+                return;
+            }
+            
+            grid.innerHTML = traders.map(t => `
+                <div class="trader-card">
+                    <div class="trader-header">
+                        <img src="${t.avatarUrl || '/images/default-avatar.png'}" class="trader-avatar" alt="${t.traderName}">
+                        <div class="trader-info">
+                            <h3>${t.traderName}</h3>
+                            <p>${t.description || '暂无描述'}</p>
+                        </div>
+                    </div>
+                    <div class="trader-stats">
+                        <div class="stat-item">
+                            <div class="label">累计订单</div>
+                            <div class="value">${t.totalOrders || 0}</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="label">今日订单</div>
+                            <div class="value">${t.todayOrders || 0}</div>
+                        </div>
+                    </div>
+                    <div class="trader-actions">
+                        ${t.subscribed ? 
+                            `<button class="btn btn-secondary" onclick="unsubscribe(${t.id})">已订阅</button>` :
+                            `<button class="btn btn-primary" onclick="subscribe(${t.id})">订阅</button>`
+                        }
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function renderPagination(current, total) {
+            const pagination = document.getElementById('pagination');
+            let html = `<button onclick="loadTraders(${current - 1})" ${current === 1 ? 'disabled' : ''}>上一页</button>`;
+            for (let i = 1; i <= total; i++) {
+                if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+                    html += `<button class="${i === current ? 'active' : ''}" onclick="loadTraders(${i})">${i}</button>`;
+                }
+            }
+            html += `<button onclick="loadTraders(${current + 1})" ${current === total ? 'disabled' : ''}>下一页</button>`;
+            pagination.innerHTML = html;
+        }
+        
+        async function subscribe(traderId) {
+            const res = await fetch(`/user/subscriptions/subscribe/${traderId}`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message || (data.success ? '订阅成功！' : '订阅失败'));
+            if (data.success) loadTraders(currentPage);
+        }
+        
+        async function unsubscribe(traderId) {
+            if (!confirm('确定要取消订阅吗？')) return;
+            const res = await fetch(`/user/subscriptions/unsubscribe/${traderId}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || (data.success ? '取消订阅成功！' : '取消订阅失败'));
+            if (data.success) loadTraders(currentPage);
+        }
+        
+        loadTraders();
+    </script>
+    <script th:replace="user/components/tw-user-common-script :: ~{}"></script>
+</body>
+</html>
