@@ -26,6 +26,7 @@ spring:
 mybatis:
   configuration:
     map-underscore-to-camel-case: true  # 开启下划线到驼峰命名的自动映射
+  mapper-locations: classpath:mapper/*.xml  # 扫描Mapper XML文件
 
 logging:
   level:
@@ -37,6 +38,9 @@ logging:
 
 # 自定义配置
 tradewise:
+  # 应用配置
+  app:
+    domain: http://localhost:8080  # 生产环境改为实际域名，如: https://tradewise.com
   api:
     base-url: https://www.binance.com
     order-history-endpoint: /bapi/futures/v1/friendly/future/copy-trade/lead-portfolio/order-history
