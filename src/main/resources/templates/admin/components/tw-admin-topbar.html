@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .topbar {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 200px;
+            height: 60px;
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding: 0 30px;
+            transition: left 0.3s ease;
+            z-index: 999;
+        }
+        .topbar.sidebar-collapsed {
+            left: 0;
+        }
+        .user-menu {
+            position: relative;
+        }
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            user-select: none;
+        }
+        .user-avatar:hover {
+            transform: scale(1.1);
+        }
+        .dropdown-menu {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            min-width: 200px;
+            display: none;
+            overflow: hidden;
+        }
+        .dropdown-menu.show {
+            display: block;
+        }
+        .dropdown-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .dropdown-header .name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .dropdown-header .role {
+            font-size: 12px;
+            color: #999;
+        }
+        .dropdown-item {
+            padding: 12px 20px;
+            color: #666;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .dropdown-item:hover {
+            background: #f5f7fa;
+        }
+        .dropdown-item i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        .dropdown-divider {
+            height: 1px;
+            background: #f0f0f0;
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="topbar" id="topbar">
+        <div class="user-menu">
+            <div class="user-avatar" id="userAvatar">A</div>
+            <div class="dropdown-menu" id="dropdownMenu">
+                <div class="dropdown-header">
+                    <div class="name" id="userName">管理员</div>
+                    <div class="role" id="userRole">超级管理员</div>
+                </div>
+                <a href="/admin/profile" class="dropdown-item">
+                    <i>👤</i> 个人资料
+                </a>
+                <a href="/admin/change-password" class="dropdown-item">
+                    <i>🔒</i> 修改密码
+                </a>
+                <a href="/admin/login-logs" class="dropdown-item">
+                    <i>📝</i> 登录日志
+                </a>
+                <div class="dropdown-divider"></div>
+                <a href="javascript:void(0)" class="dropdown-item" style="color: #f44336;" id="logoutBtn">
+                    <i>🚪</i> 退出登录
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        (function() {
+            // 加载用户信息
+            async function loadUserInfo() {
+                try {
+                    const response = await fetch('/admin/auth/current');
+                    const data = await response.json();
+                    if (data.success) {
+                        const username = data.data.username;
+                        const role = data.data.role;
+                        document.getElementById('userName').textContent = username;
+                        document.getElementById('userRole').textContent = role === 'SUPER_ADMIN' ? '超级管理员' : '普通管理员';
+                        document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
+                    }
+                } catch (error) {
+                    console.error('加载用户信息失败', error);
+                }
+            }
+            
+            // 切换下拉菜单
+            const avatar = document.getElementById('userAvatar');
+            const dropdown = document.getElementById('dropdownMenu');
+            
+            avatar.onclick = function(e) {
+                e.stopPropagation();
+                dropdown.classList.toggle('show');
+            };
+            
+            // 点击外部关闭
+            document.onclick = function() {
+                dropdown.classList.remove('show');
+            };
+            
+            // 退出登录
+            document.getElementById('logoutBtn').onclick = function(e) {
+                e.preventDefault();
+                if (confirm('确定要退出登录吗？')) {
+                    fetch('/admin/auth/logout', { method: 'POST' })
+                        .then(() => window.location.href = '/admin/login');
+                }
+            };
+            
+            // 监听侧边栏折叠事件
+            window.addEventListener('sidebarToggle', function(e) {
+                const topbar = document.getElementById('topbar');
+                if (e.detail.collapsed) {
+                    topbar.classList.add('sidebar-collapsed');
+                } else {
+                    topbar.classList.remove('sidebar-collapsed');
+                }
+            });
+            
+            // 初始化时检查侧边栏状态
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('topbar').classList.add('sidebar-collapsed');
+            }
+            
+            loadUserInfo();
+        })();
+    </script>
+</body>
+</html>
