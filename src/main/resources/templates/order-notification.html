@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跟单订单通知</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+        }
+        .container {
+            max-width: 600px;
+            margin: 40px auto;
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            text-align: center;
+            color: #ffffff;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            font-weight: 600;
+        }
+        .header p {
+            margin: 8px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        .content {
+            padding: 30px;
+        }
+        .trader-info {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            border-left: 4px solid #667eea;
+        }
+        .trader-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        .order-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+        .order-header {
+            background-color: #f7fafc;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .symbol {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+        }
+        .action-badge {
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+        .action-long { background-color: #48bb78; }
+        .action-short { background-color: #f56565; }
+        .order-details {
+            padding: 20px;
+        }
+        .detail-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid #f7fafc;
+        }
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        .detail-label {
+            color: #718096;
+            font-size: 14px;
+        }
+        .detail-value {
+            color: #2d3748;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        .pnl-positive {
+            color: #48bb78;
+        }
+        .pnl-negative {
+            color: #f56565;
+        }
+        .footer {
+            background-color: #f7fafc;
+            padding: 20px;
+            text-align: center;
+            color: #718096;
+            font-size: 12px;
+        }
+        .timestamp {
+            color: #a0aec0;
+            font-size: 13px;
+            margin-top: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔔 跟单订单通知</h1>
+            <p>您关注的交易员有新的交易动作</p>
+        </div>
+        
+        <div class="content">
+            <div class="trader-info">
+                <div class="trader-name" th:text="${traderName}">交易员名称</div>
+                <div style="color: #718096; font-size: 14px; margin-top: 4px;">刚刚执行了一笔新订单</div>
+            </div>
+            
+            <div class="order-card">
+                <div class="order-header">
+                    <div class="symbol" th:text="${order.symbol}">BTCUSDT</div>
+                    <div class="action-badge" 
+                         th:classappend="${order.actionType == '开多' || order.actionType == '平空'} ? 'action-long' : 'action-short'"
+                         th:text="${order.actionType}">开多</div>
+                </div>
+                
+                <div class="order-details">
+                    <div class="detail-row">
+                        <span class="detail-label">交易方向</span>
+                        <span class="detail-value" th:text="${order.side}">BUY</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">持仓方向</span>
+                        <span class="detail-value" th:text="${order.positionSide}">LONG</span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">成交均价</span>
+                        <span class="detail-value">
+                            <span th:if="${order.avgPrice != null}" th:text="${#numbers.formatDecimal(order.avgPrice, 1, 4)}">0.0000</span>
+                            <span th:if="${order.avgPrice != null}"> USDT</span>
+                            <span th:if="${order.avgPrice == null}">-</span>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">成交数量</span>
+                        <span class="detail-value">
+                            <span th:if="${order.executedQty != null}" th:text="${#numbers.formatDecimal(order.executedQty, 1, 4)}">0.0000</span>
+                            <span th:if="${order.executedQty == null}">-</span>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-row">
+                        <span class="detail-label">总价值</span>
+                        <span class="detail-value">
+                            <span th:if="${order.totalValue != null}" th:text="${#numbers.formatDecimal(order.totalValue, 1, 2)}">0.00</span>
+                            <span th:if="${order.totalValue != null}"> USDT</span>
+                            <span th:if="${order.totalValue == null}">-</span>
+                        </span>
+                    </div>
+                    
+                    <div class="detail-row" th:if="${order.realizedPnl != null}">
+                        <span class="detail-label">已实现盈亏</span>
+                        <span class="detail-value" 
+                              th:classappend="${order.realizedPnl > 0} ? 'pnl-positive' : 'pnl-negative'">
+                            <span th:text="${order.realizedPnl > 0 ? '+' : ''}"></span>
+                            <span th:text="${#numbers.formatDecimal(order.realizedPnl, 1, 2)}">0.00</span>
+                            <span> USDT</span>
+                        </span>
+                    </div>
+                    
+                    <div class="timestamp">
+                        <span>订单时间: </span>
+                        <span th:text="${#temporals.format(order.orderTime, 'yyyy-MM-dd HH:mm:ss')}">2024-01-01 12:00:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>这是一封自动发送的邮件，请勿直接回复</p>
+            <p>TradeWise 跟单订单监控系统</p>
+        </div>
+    </div>
+</body>
+</html>
