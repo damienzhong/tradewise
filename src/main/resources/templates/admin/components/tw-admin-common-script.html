@@ -8,22 +8,27 @@
 <div th:fragment="common-script">
     <script>
         // 监听侧边栏折叠事件
+        window.addEventListener('sidebarToggle', function(e) {
+            const container = document.getElementById('mainContainer');
+            const topbar = document.getElementById('topbar');
+            
+            if (e.detail.collapsed) {
+                if (container) container.classList.add('sidebar-collapsed');
+                if (topbar) topbar.classList.add('sidebar-collapsed');
+            } else {
+                if (container) container.classList.remove('sidebar-collapsed');
+                if (topbar) topbar.classList.remove('sidebar-collapsed');
+            }
+        });
+        
+        // 页面加载时检查侧边栏状态
         document.addEventListener('DOMContentLoaded', function() {
-            const sidebar = document.getElementById('sidebar');
-            if (sidebar) {
-                const observer = new MutationObserver(function(mutations) {
-                    mutations.forEach(function(mutation) {
-                        if (mutation.attributeName === 'class') {
-                            const isCollapsed = sidebar.classList.contains('collapsed');
-                            // 可以在这里添加其他需要响应侧边栏状态变化的逻辑
-                        }
-                    });
-                });
-                
-                observer.observe(sidebar, {
-                    attributes: true,
-                    attributeFilter: ['class']
-                });
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                const container = document.getElementById('mainContainer');
+                const topbar = document.getElementById('topbar');
+                if (container) container.classList.add('sidebar-collapsed');
+                if (topbar) topbar.classList.add('sidebar-collapsed');
             }
         });
     </script>
