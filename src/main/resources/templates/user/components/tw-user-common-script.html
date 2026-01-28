@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+    <script>
+        // 监听侧边栏折叠事件
+        window.addEventListener('sidebarToggle', function(e) {
+            const container = document.getElementById('mainContainer');
+            if (container) {
+                if (e.detail.collapsed) {
+                    container.classList.add('sidebar-collapsed');
+                } else {
+                    container.classList.remove('sidebar-collapsed');
+                }
+            }
+        });
+        
+        // 初始化时检查侧边栏状态
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            const container = document.getElementById('mainContainer');
+            if (container) {
+                container.classList.add('sidebar-collapsed');
+            }
+        }
+    </script>
+</body>
+</html>
