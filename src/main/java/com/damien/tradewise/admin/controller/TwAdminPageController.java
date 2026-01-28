@@ -60,4 +60,9 @@ public class TwAdminPageController {
     public String users() {
         return "admin/tw-admin-users";
     }
+    
+    @GetMapping("/traders")
+    public String traders() {
+        return "admin/tw-admin-traders";
+    }
 }
