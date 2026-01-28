@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>我的订阅 - TradeWise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .container { margin-left: 200px; margin-top: 60px; padding: 32px; transition: margin-left 0.3s ease; }
+        .container.sidebar-collapsed { margin-left: 0; }
+        
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .card h2 { margin-bottom: 20px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        
+        .subscription-list { display: flex; flex-direction: column; gap: 15px; }
+        .subscription-card { background: white; border-radius: 8px; padding: 20px; border: 1px solid #e0e0e0; border-left: 4px solid #28a745; transition: all 0.3s; }
+        .subscription-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        
+        .sub-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .sub-info { display: flex; align-items: center; flex: 1; }
+        .trader-avatar { width: 50px; height: 50px; border-radius: 50%; margin-right: 15px; object-fit: cover; }
+        .trader-details h3 { margin: 0; font-size: 16px; color: #333; }
+        .trader-details p { margin: 5px 0 0 0; font-size: 12px; color: #999; }
+        
+        .sub-stats { display: flex; gap: 15px; margin: 15px 0; }
+        .stat-badge { padding: 6px 12px; background: #f5f7fa; border-radius: 6px; font-size: 12px; color: #666; }
+        
+        .sub-actions { display: flex; gap: 10px; align-items: center; }
+        .switch { position: relative; display: inline-block; width: 50px; height: 24px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 24px; }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: #4caf50; }
+        input:checked + .slider:before { transform: translateX(26px); }
+        
+        .btn { padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn:hover { opacity: 0.9; }
+        
+        .empty-state { text-align: center; padding: 60px 20px; color: #999; }
+        .empty-state i { font-size: 48px; margin-bottom: 15px; }
+    </style>
+</head>
+<body data-page="subscriptions">
+    <div th:replace="user/components/tw-user-sidebar :: ~{}"></div>
+    <div th:replace="user/components/tw-user-topbar :: ~{}"></div>
+    
+    <div class="container" id="mainContainer">
+        <h1 style="margin-bottom: 24px; color: #333;">⭐ 我的订阅</h1>
+        
+        <div class="card">
+            <h2>
+                订阅列表
+                <a href="/user/traders" class="btn btn-primary">+ 订阅更多</a>
+            </h2>
+            <div class="subscription-list" id="subscriptionList">
+                <div style="text-align: center; padding: 40px; color: #999;">加载中...</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        async function loadSubscriptions() {
+            const res = await fetch('/user/subscriptions/my');
+            const data = await res.json();
+            
+            if (!data.success) {
+                alert(data.message || '加载失败');
+                return;
+            }
+            
+            renderSubscriptions(data.subscriptions);
+        }
+        
+        function renderSubscriptions(subscriptions) {
+            const list = document.getElementById('subscriptionList');
+            
+            if (subscriptions.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 48px;">📭</div>
+                        <p>您还没有订阅任何交易员</p>
+                        <a href="/user/traders" class="btn btn-primary" style="margin-top: 15px;">去订阅</a>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = subscriptions.map(sub => `
+                <div class="subscription-card">
+                    <div class="sub-header">
+                        <div class="sub-info">
+                            <img src="${sub.avatarUrl || '/images/default-avatar.png'}" class="trader-avatar" alt="${sub.traderName}">
+                            <div class="trader-details">
+                                <h3>${sub.traderName}</h3>
+                                <p>${sub.description || '暂无描述'}</p>
+                            </div>
+                        </div>
+                        <div class="sub-actions">
+                            <label style="font-size: 12px; color: #666; margin-right: 10px;">
+                                邮件通知
+                                <label class="switch" style="margin-left: 8px;">
+                                    <input type="checkbox" ${sub.notifyEmail ? 'checked' : ''} onchange="toggleNotify(${sub.traderId}, this.checked)">
+                                    <span class="slider"></span>
+                                </label>
+                            </label>
+                            <button class="btn btn-danger" onclick="unsubscribe(${sub.traderId})">取消订阅</button>
+                        </div>
+                    </div>
+                    <div class="sub-stats">
+                        <span class="stat-badge">📊 累计订单: ${sub.totalOrders || 0}</span>
+                        <span class="stat-badge">📅 今日订单: ${sub.todayOrders || 0}</span>
+                        <span class="stat-badge">🕐 订阅时间: ${formatDate(sub.subscribedAt)}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        async function toggleNotify(traderId, enabled) {
+            const res = await fetch(`/user/subscriptions/update/${traderId}?notifyEmail=${enabled}&status=ACTIVE`, { method: 'PUT' });
+            const data = await res.json();
+            if (!data.success) {
+                alert(data.message || '更新失败');
+                loadSubscriptions();
+            }
+        }
+        
+        async function unsubscribe(traderId) {
+            if (!confirm('确定要取消订阅吗？取消后将不再收到该交易员的订单通知。')) return;
+            
+            const res = await fetch(`/user/subscriptions/unsubscribe/${traderId}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message || (data.success ? '取消订阅成功！' : '取消订阅失败'));
+            if (data.success) loadSubscriptions();
+        }
+        
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('zh-CN');
+        }
+        
+        loadSubscriptions();
+    </script>
+    <script th:replace="user/components/tw-user-common-script :: ~{}"></script>
+</body>
+</html>
