@@ -91,7 +91,7 @@
         }
     </style>
 </head>
-<body>
+<body th:fragment="sidebar">
     <button class="toggle-btn" onclick="toggleSidebar()" id="toggleBtn">☰</button>
     
     <div class="sidebar" id="sidebar">
@@ -104,6 +104,9 @@
             <div class="menu-section">主要功能</div>
             <a href="/admin/dashboard" class="menu-item" data-page="dashboard">
                 <i>📊</i> 控制台
+            </a>
+            <a href="/admin/traders" class="menu-item" data-page="traders">
+                <i>📈</i> 交易员配置
             </a>
             <a href="/admin/users" class="menu-item" data-page="users">
                 <i>👥</i> 用户管理
@@ -120,6 +123,20 @@
     </div>
     
     <script>
+        // 全局函数：切换侧边栏
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggleBtn');
+            sidebar.classList.toggle('collapsed');
+            toggleBtn.classList.toggle('collapsed');
+            
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+            
+            const event = new CustomEvent('sidebarToggle', { detail: { collapsed: isCollapsed } });
+            window.dispatchEvent(event);
+        }
+        
         (function() {
             // 高亮当前页面
             const currentPage = document.body.getAttribute('data-page');
@@ -139,19 +156,7 @@
                     }
                 });
             
-            function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            const toggleBtn = document.getElementById('toggleBtn');
-            sidebar.classList.toggle('collapsed');
-            toggleBtn.classList.toggle('collapsed');
-            
-            const isCollapsed = sidebar.classList.contains('collapsed');
-            localStorage.setItem('sidebarCollapsed', isCollapsed);
-            
-            const event = new CustomEvent('sidebarToggle', { detail: { collapsed: isCollapsed } });
-            window.dispatchEvent(event);
-        }
-        
+            // 初始化侧边栏状态
             const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
             if (isCollapsed) {
                 document.getElementById('sidebar').classList.add('collapsed');
