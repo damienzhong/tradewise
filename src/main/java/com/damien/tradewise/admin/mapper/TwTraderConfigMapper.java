@@ -4,6 +4,7 @@ import com.damien.tradewise.admin.entity.TwTraderConfig;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -34,4 +35,14 @@ public interface TwTraderConfigMapper {
     int updateEnabled(@Param("id") Long id, @Param("enabled") Boolean enabled);
     
     int deleteById(@Param("id") Long id);
+    
+    List<TwTraderConfig> selectEnabledTraders();
+    
+    List<TwTraderConfig> selectEnabledTraders(@Param("offset") int offset, @Param("limit") int limit);
+    
+    int countEnabledTraders();
+    
+    int updateOrderStatistics(@Param("id") Long id, @Param("newOrderCount") int newOrderCount, @Param("lastOrderTime") LocalDateTime lastOrderTime);
+    
+    int updateLastCheckTime(@Param("id") Long id, @Param("lastCheckTime") LocalDateTime lastCheckTime);
 }
