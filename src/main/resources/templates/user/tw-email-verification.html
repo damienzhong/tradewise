@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>邮箱验证</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f5f7fa;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f7fa; padding: 40px 0;">
+        <tr>
+            <td align="center">
+                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                    <tr>
+                        <td style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 8px 8px 0 0;">
+                            <h1 style="color: #ffffff; margin: 0; font-size: 28px;">TradeWise</h1>
+                            <p style="color: #ffffff; margin: 10px 0 0 0; opacity: 0.9;">邮箱验证</p>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="padding: 40px 30px;">
+                            <p style="color: #333; font-size: 16px; line-height: 1.6; margin: 0 0 20px 0;">
+                                您好，<strong th:text="${username}">用户</strong>！
+                            </p>
+                            
+                            <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 0 0 20px 0;">
+                                感谢您注册TradeWise！请点击下面的按钮验证您的邮箱地址：
+                            </p>
+                            
+                            <div style="text-align: center; margin: 30px 0;">
+                                <a th:href="${verifyLink}" 
+                                   style="display: inline-block; padding: 14px 40px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 600;">
+                                    验证邮箱
+                                </a>
+                            </div>
+                            
+                            <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0;">
+                                或者复制以下链接到浏览器中打开：
+                            </p>
+                            
+                            <p style="color: #667eea; font-size: 13px; word-break: break-all; background: #f5f7fa; padding: 12px; border-radius: 4px; margin: 0 0 20px 0;">
+                                <span th:text="${verifyLink}">验证链接</span>
+                            </p>
+                            
+                            <div style="background: #fff3cd; border-left: 4px solid #ffc107; padding: 12px; margin: 20px 0;">
+                                <p style="color: #856404; font-size: 13px; margin: 0; line-height: 1.6;">
+                                    <strong>⚠️ 提示：</strong><br>
+                                    • 此链接将在 <strong>24小时</strong> 后失效<br>
+                                    • 如果您没有注册TradeWise，请忽略此邮件
+                                </p>
+                            </div>
+                        </td>
+                    </tr>
+                    
+                    <tr>
+                        <td style="background-color: #f5f7fa; padding: 20px 30px; text-align: center; border-radius: 0 0 8px 8px;">
+                            <p style="color: #999; font-size: 12px; margin: 0;">
+                                © 2024 TradeWise. All rights reserved.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
