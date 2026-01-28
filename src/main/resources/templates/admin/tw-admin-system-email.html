@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>系统邮箱配置 - TradeWise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .container { margin-left: 200px; margin-top: 60px; padding: 32px; transition: margin-left 0.3s ease; }
+        .container.sidebar-collapsed { margin-left: 0; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .card h2 { margin-bottom: 20px; color: #333; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn:hover { opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background: #f5f7fa; font-weight: 600; color: #666; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .badge-default { background: #ff9800; color: white; }
+        .badge-enabled { background: #4caf50; color: white; }
+        .badge-disabled { background: #f44336; color: white; }
+        .badge-success { background: #d4edda; color: #155724; }
+        .badge-failed { background: #f8d7da; color: #721c24; }
+        .badge-untested { background: #e0e0e0; color: #666; }
+        .message { padding: 12px; border-radius: 6px; margin-bottom: 16px; display: none; }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body data-page="system-email">
+    <div th:replace="admin/components/tw-admin-sidebar :: ~{}"></div>
+    <div th:replace="admin/components/tw-admin-topbar :: ~{}"></div>
+    
+    <div class="container" id="mainContainer">
+        <div class="card">
+            <h2>添加邮箱配置</h2>
+            <div id="addMessage" class="message"></div>
+            <form id="addForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>配置名称 *</label>
+                        <input type="text" id="emailName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>SMTP服务器 *</label>
+                        <input type="text" id="smtpHost" placeholder="smtp.qq.com" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>SMTP端口 *</label>
+                        <input type="number" id="smtpPort" value="587" required>
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱账号 *</label>
+                        <input type="text" id="username" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>密码/授权码 *</label>
+                        <input type="password" id="password" required>
+                    </div>
+                    <div class="form-group">
+                        <label>发件人地址 *</label>
+                        <input type="email" id="fromAddress" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>发件人名称</label>
+                        <input type="text" id="fromName" value="TradeWise">
+                    </div>
+                    <div class="form-group">
+                        <label>加密方式</label>
+                        <select id="encryption">
+                            <option value="tls">TLS (推荐)</option>
+                            <option value="ssl">SSL</option>
+                            <option value="none">无</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">添加配置</button>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>邮箱配置列表</h2>
+            <div id="listMessage" class="message"></div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>配置名称</th>
+                        <th>SMTP服务器</th>
+                        <th>发件人</th>
+                        <th>状态</th>
+                        <th>测试状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="configTable"></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('addForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageEl = document.getElementById('addMessage');
+            
+            const encryption = document.getElementById('encryption').value;
+            const data = {
+                emailName: document.getElementById('emailName').value,
+                smtpHost: document.getElementById('smtpHost').value,
+                smtpPort: parseInt(document.getElementById('smtpPort').value),
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                fromAddress: document.getElementById('fromAddress').value,
+                fromName: document.getElementById('fromName').value,
+                useSsl: encryption === 'ssl',
+                useTls: encryption === 'tls',
+                isDefault: false,
+                enabled: true
+            };
+            
+            const response = await fetch('/admin/system-email/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            messageEl.className = result.success ? 'message success' : 'message error';
+            messageEl.textContent = result.message;
+            messageEl.style.display = 'block';
+            
+            if (result.success) {
+                document.getElementById('addForm').reset();
+                loadConfigs();
+            }
+        });
+        
+        async function loadConfigs() {
+            const response = await fetch('/admin/system-email/list');
+            const result = await response.json();
+            
+            if (result.success) {
+                const tbody = document.getElementById('configTable');
+                tbody.innerHTML = result.data.map(config => `
+                    <tr>
+                        <td>
+                            ${config.emailName}
+                            ${config.isDefault ? '<span class="badge badge-default">默认</span>' : ''}
+                        </td>
+                        <td>${config.smtpHost}:${config.smtpPort}</td>
+                        <td>${config.fromAddress}</td>
+                        <td><span class="badge ${config.enabled ? 'badge-enabled' : 'badge-disabled'}">${config.enabled ? '启用' : '禁用'}</span></td>
+                        <td><span class="badge badge-${config.testStatus?.toLowerCase() || 'untested'}">${config.testStatus === 'SUCCESS' ? '成功' : config.testStatus === 'FAILED' ? '失败' : '未测试'}</span></td>
+                        <td>
+                            <button class="btn btn-success" onclick="testConfig(${config.id})" style="margin-right: 8px;">测试</button>
+                            ${!config.isDefault ? `<button class="btn btn-warning" onclick="setDefault(${config.id})" style="margin-right: 8px;">设为默认</button>` : ''}
+                            <button class="btn btn-danger" onclick="deleteConfig(${config.id})">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+        
+        async function testConfig(id) {
+            const response = await fetch(`/admin/system-email/test/${id}`, { method: 'POST' });
+            const result = await response.json();
+            
+            const messageEl = document.getElementById('listMessage');
+            messageEl.className = result.success ? 'message success' : 'message error';
+            messageEl.textContent = result.message;
+            messageEl.style.display = 'block';
+            
+            loadConfigs();
+        }
+        
+        async function setDefault(id) {
+            const response = await fetch(`/admin/system-email/set-default/${id}`, { method: 'POST' });
+            const result = await response.json();
+            
+            const messageEl = document.getElementById('listMessage');
+            messageEl.className = result.success ? 'message success' : 'message error';
+            messageEl.textContent = result.message;
+            messageEl.style.display = 'block';
+            
+            loadConfigs();
+        }
+        
+        async function deleteConfig(id) {
+            if (!confirm('确定要删除此配置吗？')) return;
+            
+            const response = await fetch(`/admin/system-email/delete/${id}`, { method: 'DELETE' });
+            const result = await response.json();
+            
+            const messageEl = document.getElementById('listMessage');
+            messageEl.className = result.success ? 'message success' : 'message error';
+            messageEl.textContent = result.message;
+            messageEl.style.display = 'block';
+            
+            loadConfigs();
+        }
+        
+        loadConfigs();
+    </script>
+    <script th:replace="admin/components/tw-admin-common-script :: ~{}"></script>
+</body>
+</html>
