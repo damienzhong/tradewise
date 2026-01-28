@@ -32,7 +32,7 @@ public class TwUserSubscriptionController {
             @RequestParam(defaultValue = "20") int size,
             HttpSession session) {
         
-        Long userId = (Long) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("tw_user_id");
         
         int offset = (page - 1) * size;
         List<TwTraderConfig> traders = traderConfigMapper.selectEnabledTraders(offset, size);
@@ -75,7 +75,7 @@ public class TwUserSubscriptionController {
      */
     @GetMapping("/my")
     public Map<String, Object> getMySubscriptions(HttpSession session) {
-        Long userId = (Long) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("tw_user_id");
         
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
@@ -97,7 +97,7 @@ public class TwUserSubscriptionController {
     public Map<String, Object> subscribe(@PathVariable Long traderId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         
-        Long userId = (Long) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("tw_user_id");
         if (userId == null) {
             result.put("success", false);
             result.put("message", "请先登录");
@@ -123,7 +123,7 @@ public class TwUserSubscriptionController {
     public Map<String, Object> unsubscribe(@PathVariable Long traderId, HttpSession session) {
         Map<String, Object> result = new HashMap<>();
         
-        Long userId = (Long) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("tw_user_id");
         if (userId == null) {
             result.put("success", false);
             result.put("message", "请先登录");
@@ -154,7 +154,7 @@ public class TwUserSubscriptionController {
         
         Map<String, Object> result = new HashMap<>();
         
-        Long userId = (Long) session.getAttribute("userId");
+        Long userId = (Long) session.getAttribute("tw_user_id");
         if (userId == null) {
             result.put("success", false);
             result.put("message", "请先登录");
