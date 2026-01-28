@@ -13,6 +13,16 @@ public class TwUserPageController {
         return "user/tw-user-login";
     }
     
+    @GetMapping("/register")
+    public String register() {
+        return "user/tw-user-register";
+    }
+    
+    @GetMapping("/forgot-password")
+    public String forgotPassword() {
+        return "user/tw-user-forgot-password";
+    }
+    
     @GetMapping("/dashboard")
     public String dashboard() {
         return "user/tw-user-dashboard";
