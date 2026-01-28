@@ -101,4 +101,29 @@
         DELETE FROM tw_trader_config WHERE id = #{id}
     </delete>
 
+    <select id="selectEnabledTraders" resultMap="TwTraderConfigResultMap">
+        SELECT * FROM tw_trader_config WHERE enabled = 1 ORDER BY id
+        <if test="offset != null and limit != null">
+            LIMIT #{limit} OFFSET #{offset}
+        </if>
+    </select>
+    
+    <select id="countEnabledTraders" resultType="int">
+        SELECT COUNT(*) FROM tw_trader_config WHERE enabled = 1
+    </select>
+
+    <update id="updateOrderStatistics">
+        UPDATE tw_trader_config
+        SET total_orders = total_orders + #{newOrderCount},
+            today_orders = today_orders + #{newOrderCount},
+            last_order_time = #{lastOrderTime}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLastCheckTime">
+        UPDATE tw_trader_config
+        SET last_check_time = #{lastCheckTime}
+        WHERE id = #{id}
+    </update>
+
 </mapper>
