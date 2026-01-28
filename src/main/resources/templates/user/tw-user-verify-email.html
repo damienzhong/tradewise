@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>邮箱验证 - TradeWise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            width: 420px;
+            padding: 48px 40px;
+            text-align: center;
+        }
+        .logo h1 { font-size: 32px; color: #667eea; font-weight: 700; margin-bottom: 8px; }
+        .logo p { color: #666; font-size: 14px; margin-bottom: 32px; }
+        .icon { font-size: 64px; margin-bottom: 20px; }
+        .message {
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 24px;
+            display: none;
+        }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+        .message.loading { background: #d1ecf1; color: #0c5460; }
+        .btn {
+            display: inline-block;
+            padding: 12px 32px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <h1>TradeWise</h1>
+            <p>邮箱验证</p>
+        </div>
+        
+        <div class="icon" id="icon">⏳</div>
+        <div id="message" class="message loading" style="display: block;">正在验证邮箱...</div>
+        
+        <div id="actions" style="display: none;">
+            <a href="/user/login" class="btn">前往登录</a>
+        </div>
+    </div>
+    
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        
+        if (!token) {
+            document.getElementById('icon').textContent = '❌';
+            document.getElementById('message').className = 'message error';
+            document.getElementById('message').textContent = '无效的验证链接';
+        } else {
+            verifyEmail(token);
+        }
+        
+        async function verifyEmail(token) {
+            try {
+                const response = await fetch('/user/auth/verify-email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token })
+                });
+                
+                const data = await response.json();
+                const messageEl = document.getElementById('message');
+                const iconEl = document.getElementById('icon');
+                const actionsEl = document.getElementById('actions');
+                
+                if (data.success) {
+                    iconEl.textContent = '✅';
+                    messageEl.className = 'message success';
+                    messageEl.textContent = '邮箱验证成功！您现在可以登录了。';
+                    actionsEl.style.display = 'block';
+                } else {
+                    iconEl.textContent = '❌';
+                    messageEl.className = 'message error';
+                    messageEl.textContent = data.message || '验证失败';
+                }
+            } catch (error) {
+                document.getElementById('icon').textContent = '❌';
+                document.getElementById('message').className = 'message error';
+                document.getElementById('message').textContent = '网络错误，请稍后重试';
+            }
+        }
+    </script>
+</body>
+</html>
