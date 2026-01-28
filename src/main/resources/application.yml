@@ -40,7 +40,7 @@ logging:
 tradewise:
   # 应用配置
   app:
-    domain: http://localhost:8080  # 生产环境改为实际域名，如: https://tradewise.com
+    domain: http://47.236.151.151:8080  # 生产环境改为实际域名，如: https://tradewise.com
   api:
     base-url: https://www.binance.com
     order-history-endpoint: /bapi/futures/v1/friendly/future/copy-trade/lead-portfolio/order-history
