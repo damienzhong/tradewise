@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .sidebar {
+            width: 200px;
+            height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            position: fixed;
+            left: 0;
+            top: 0;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+        .sidebar.collapsed {
+            transform: translateX(-200px);
+        }
+        .sidebar-header {
+            padding: 30px 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .sidebar-header h2 {
+            color: white;
+            margin: 0;
+            font-size: 24px;
+        }
+        .sidebar-header p {
+            color: rgba(255,255,255,0.8);
+            margin: 5px 0 0 0;
+            font-size: 12px;
+        }
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+        .menu-item {
+            padding: 12px 20px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .menu-item:hover {
+            background: rgba(255,255,255,0.1);
+            padding-left: 30px;
+        }
+        .menu-item.active {
+            background: rgba(255,255,255,0.2);
+            border-left: 4px solid white;
+        }
+        .menu-item i {
+            margin-right: 10px;
+            width: 20px;
+        }
+        .menu-section {
+            padding: 20px 20px 10px 20px;
+            color: rgba(255,255,255,0.6);
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+        .toggle-btn {
+            position: fixed;
+            left: 210px;
+            top: 20px;
+            width: 40px;
+            height: 40px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+            transition: left 0.3s ease;
+            z-index: 1001;
+        }
+        .toggle-btn.collapsed {
+            left: 10px;
+        }
+        .toggle-btn:hover {
+            background: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <button class="toggle-btn" onclick="toggleSidebar()" id="toggleBtn">☰</button>
+    
+    <div class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>TradeWise</h2>
+            <p>管理员控制台</p>
+        </div>
+        
+        <div class="sidebar-menu">
+            <div class="menu-section">主要功能</div>
+            <a href="/admin/dashboard" class="menu-item" data-page="dashboard">
+                <i>📊</i> 控制台
+            </a>
+            <a href="/admin/users" class="menu-item" data-page="users">
+                <i>👥</i> 用户管理
+            </a>
+            
+            <div class="menu-section" id="systemManagementSection" style="display: none;">系统管理</div>
+            <a href="/admin/admins" class="menu-item" data-page="admin-management" id="adminManagementMenu" style="display: none;">
+                <i>🔑</i> 管理员管理
+            </a>
+            <a href="/admin/system-email" class="menu-item" data-page="system-email" id="systemEmailMenu" style="display: none;">
+                <i>📧</i> 系统邮箱
+            </a>
+        </div>
+    </div>
+    
+    <script>
+        (function() {
+            // 高亮当前页面
+            const currentPage = document.body.getAttribute('data-page');
+            if (currentPage) {
+                const menuItem = document.querySelector(`.menu-item[data-page="${currentPage}"]`);
+                if (menuItem) menuItem.classList.add('active');
+            }
+            
+            // 检查用户角色并显示对应菜单
+            fetch('/admin/auth/current')
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data.role === 'SUPER_ADMIN') {
+                        document.getElementById('systemManagementSection').style.display = 'block';
+                        document.getElementById('adminManagementMenu').style.display = 'flex';
+                        document.getElementById('systemEmailMenu').style.display = 'flex';
+                    }
+                });
+            
+            function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const toggleBtn = document.getElementById('toggleBtn');
+            sidebar.classList.toggle('collapsed');
+            toggleBtn.classList.toggle('collapsed');
+            
+            const isCollapsed = sidebar.classList.contains('collapsed');
+            localStorage.setItem('sidebarCollapsed', isCollapsed);
+            
+            const event = new CustomEvent('sidebarToggle', { detail: { collapsed: isCollapsed } });
+            window.dispatchEvent(event);
+        }
+        
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('toggleBtn').classList.add('collapsed');
+            }
+        })();
+    </script>
+</body>
+</html>
