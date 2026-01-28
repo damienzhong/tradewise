@@ -22,6 +22,8 @@ public class SecurityConfig extends WebSecurityConfigurerAdapter {
         http
                 .authorizeRequests()
                 .antMatchers("/login", "/css/**", "/js/**").permitAll()
+                // 新系统路由完全放开，不使用Spring Security认证
+                .antMatchers("/admin/**", "/user/**").permitAll()
                 .antMatchers("/users", "/api/users/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
                 .and()
