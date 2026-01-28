@@ -6,7 +6,7 @@
         .sidebar {
             width: 200px;
             height: 100vh;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             position: fixed;
             left: 0;
             top: 0;
@@ -57,20 +57,13 @@
             margin-right: 10px;
             width: 20px;
         }
-        .menu-section {
-            padding: 20px 20px 10px 20px;
-            color: rgba(255,255,255,0.6);
-            font-size: 12px;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
         .toggle-btn {
             position: fixed;
             left: 210px;
             top: 20px;
             width: 40px;
             height: 40px;
-            background: #f093fb;
+            background: #667eea;
             color: white;
             border: none;
             border-radius: 50%;
@@ -87,34 +80,30 @@
             left: 10px;
         }
         .toggle-btn:hover {
-            background: #f5576c;
+            background: #764ba2;
         }
     </style>
 </head>
-<body>
+<body th:fragment="sidebar">
     <button class="toggle-btn" onclick="toggleSidebar()" id="toggleBtn">☰</button>
     
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <h2>TradeWise</h2>
-            <p>用户中心</p>
+            <p>用户控制台</p>
         </div>
         
         <div class="sidebar-menu">
-            <div class="menu-section">主要功能</div>
             <a href="/user/dashboard" class="menu-item" data-page="dashboard">
                 <i>📊</i> 控制台
+            </a>
+            <a href="/user/copy-trading" class="menu-item" data-page="copy-trading">
+                <i>📈</i> 跟单交易
             </a>
         </div>
     </div>
     
     <script>
-        const currentPage = document.body.getAttribute('data-page');
-        if (currentPage) {
-            const menuItem = document.querySelector(`.menu-item[data-page="${currentPage}"]`);
-            if (menuItem) menuItem.classList.add('active');
-        }
-        
         function toggleSidebar() {
             const sidebar = document.getElementById('sidebar');
             const toggleBtn = document.getElementById('toggleBtn');
@@ -128,12 +117,19 @@
             window.dispatchEvent(event);
         }
         
-        // 恢复侧边栏状态
-        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
-        if (isCollapsed) {
-            document.getElementById('sidebar').classList.add('collapsed');
-            document.getElementById('toggleBtn').classList.add('collapsed');
-        }
+        (function() {
+            const currentPage = document.body.getAttribute('data-page');
+            if (currentPage) {
+                const menuItem = document.querySelector(`.menu-item[data-page="${currentPage}"]`);
+                if (menuItem) menuItem.classList.add('active');
+            }
+            
+            const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+            if (isCollapsed) {
+                document.getElementById('sidebar').classList.add('collapsed');
+                document.getElementById('toggleBtn').classList.add('collapsed');
+            }
+        })();
     </script>
 </body>
 </html>
