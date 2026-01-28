@@ -28,7 +28,7 @@
             width: 40px;
             height: 40px;
             border-radius: 50%;
-            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             display: flex;
             align-items: center;
@@ -64,7 +64,7 @@
             color: #333;
             margin-bottom: 4px;
         }
-        .dropdown-header .role {
+        .dropdown-header .email {
             font-size: 12px;
             color: #999;
         }
@@ -91,23 +91,20 @@
         }
     </style>
 </head>
-<body>
+<body th:fragment="topbar">
     <div class="topbar" id="topbar">
         <div class="user-menu">
             <div class="user-avatar" id="userAvatar">U</div>
             <div class="dropdown-menu" id="dropdownMenu">
                 <div class="dropdown-header">
                     <div class="name" id="userName">用户</div>
-                    <div class="role">普通用户</div>
+                    <div class="email" id="userEmail">user@example.com</div>
                 </div>
                 <a href="/user/profile" class="dropdown-item">
-                    <i>👤</i> 个人资料
+                    <i>👤</i> 个人中心
                 </a>
                 <a href="/user/change-password" class="dropdown-item">
                     <i>🔒</i> 修改密码
-                </a>
-                <a href="/user/login-logs" class="dropdown-item">
-                    <i>📝</i> 登录日志
                 </a>
                 <div class="dropdown-divider"></div>
                 <a href="javascript:void(0)" class="dropdown-item" style="color: #f44336;" id="logoutBtn">
@@ -119,21 +116,6 @@
     
     <script>
         (function() {
-            // 加载用户信息
-            async function loadUserInfo() {
-                try {
-                    const response = await fetch('/user/auth/current');
-                    const data = await response.json();
-                    if (data.success) {
-                        const username = data.data.username;
-                        document.getElementById('userName').textContent = username;
-                        document.getElementById('userAvatar').textContent = username.charAt(0).toUpperCase();
-                    }
-                } catch (error) {
-                    console.error('加载用户信息失败', error);
-                }
-            }
-            
             // 切换下拉菜单
             const avatar = document.getElementById('userAvatar');
             const dropdown = document.getElementById('dropdownMenu');
@@ -152,7 +134,7 @@
             document.getElementById('logoutBtn').onclick = function(e) {
                 e.preventDefault();
                 if (confirm('确定要退出登录吗？')) {
-                    fetch('/user/auth/logout', { method: 'POST' })
+                    fetch('/user/logout', { method: 'POST' })
                         .then(() => window.location.href = '/user/login');
                 }
             };
@@ -172,8 +154,6 @@
             if (isCollapsed) {
                 document.getElementById('topbar').classList.add('sidebar-collapsed');
             }
-            
-            loadUserInfo();
         })();
     </script>
 </body>
