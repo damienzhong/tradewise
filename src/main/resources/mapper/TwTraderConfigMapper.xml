@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.damien.tradewise.admin.mapper.TwTraderConfigMapper">
+
+    <resultMap id="TwTraderConfigResultMap" type="com.damien.tradewise.admin.entity.TwTraderConfig">
+        <id property="id" column="id"/>
+        <result property="traderName" column="trader_name"/>
+        <result property="portfolioId" column="portfolio_id"/>
+        <result property="avatarUrl" column="avatar_url"/>
+        <result property="description" column="description"/>
+        <result property="tags" column="tags"/>
+        <result property="enabled" column="enabled"/>
+        <result property="monitorInterval" column="monitor_interval"/>
+        <result property="totalOrders" column="total_orders"/>
+        <result property="todayOrders" column="today_orders"/>
+        <result property="subscriberCount" column="subscriber_count"/>
+        <result property="lastCheckTime" column="last_check_time"/>
+        <result property="lastOrderTime" column="last_order_time"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findAll" resultMap="TwTraderConfigResultMap">
+        SELECT * FROM tw_trader_config ORDER BY created_at DESC
+    </select>
+
+    <select id="findAllWithPagination" resultMap="TwTraderConfigResultMap">
+        SELECT * FROM tw_trader_config
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="searchTraders" resultMap="TwTraderConfigResultMap">
+        SELECT * FROM tw_trader_config
+        WHERE trader_name LIKE CONCAT('%', #{keyword}, '%')
+           OR portfolio_id LIKE CONCAT('%', #{keyword}, '%')
+           OR tags LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+
+    <select id="findById" resultMap="TwTraderConfigResultMap">
+        SELECT * FROM tw_trader_config WHERE id = #{id}
+    </select>
+
+    <select id="findByPortfolioId" resultMap="TwTraderConfigResultMap">
+        SELECT * FROM tw_trader_config WHERE portfolio_id = #{portfolioId}
+    </select>
+
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM tw_trader_config
+    </select>
+
+    <select id="countSearchTraders" resultType="int">
+        SELECT COUNT(*) FROM tw_trader_config
+        WHERE trader_name LIKE CONCAT('%', #{keyword}, '%')
+           OR portfolio_id LIKE CONCAT('%', #{keyword}, '%')
+           OR tags LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+    <select id="countByEnabled" resultType="int">
+        SELECT COUNT(*) FROM tw_trader_config WHERE enabled = #{enabled}
+    </select>
+
+    <select id="sumTodayOrders" resultType="int">
+        SELECT COALESCE(SUM(today_orders), 0) FROM tw_trader_config
+    </select>
+
+    <insert id="insert" parameterType="com.damien.tradewise.admin.entity.TwTraderConfig"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tw_trader_config (
+            trader_name, portfolio_id, avatar_url, description, tags,
+            enabled, monitor_interval, created_by
+        ) VALUES (
+            #{traderName}, #{portfolioId}, #{avatarUrl}, #{description}, #{tags},
+            #{enabled}, #{monitorInterval}, #{createdBy}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.damien.tradewise.admin.entity.TwTraderConfig">
+        UPDATE tw_trader_config
+        <set>
+            <if test="traderName != null">trader_name = #{traderName},</if>
+            <if test="portfolioId != null">portfolio_id = #{portfolioId},</if>
+            <if test="avatarUrl != null">avatar_url = #{avatarUrl},</if>
+            <if test="description != null">description = #{description},</if>
+            <if test="tags != null">tags = #{tags},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+            <if test="monitorInterval != null">monitor_interval = #{monitorInterval},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateEnabled">
+        UPDATE tw_trader_config SET enabled = #{enabled} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM tw_trader_config WHERE id = #{id}
+    </delete>
+
+</mapper>
