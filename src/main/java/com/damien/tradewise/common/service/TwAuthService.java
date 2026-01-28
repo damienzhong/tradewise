@@ -133,7 +133,7 @@ public class TwAuthService {
             emailService.sendHtmlEmail(
                 user.getEmail(),
                 "TradeWise - 邮箱验证",
-                "tw-email-verification",
+                "user/tw-email-verification",
                 variables
             );
         } catch (Exception e) {
@@ -198,7 +198,7 @@ public class TwAuthService {
             emailService.sendHtmlEmail(
                 admin.getEmail(),
                 "TradeWise - 管理员密码重置",
-                "tw-password-reset-email",
+                "user/tw-password-reset-email",
                 variables
             );
         } catch (Exception e) {
@@ -262,7 +262,7 @@ public class TwAuthService {
             emailService.sendHtmlEmail(
                 user.getEmail(),
                 "TradeWise - 密码重置",
-                "tw-password-reset-email",
+                "user/tw-password-reset-email",
                 variables
             );
         } catch (Exception e) {
