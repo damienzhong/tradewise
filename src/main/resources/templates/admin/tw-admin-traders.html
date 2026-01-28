@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>交易员配置 - TradeWise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .container { margin-left: 200px; margin-top: 60px; padding: 32px; transition: margin-left 0.3s ease; }
+        .container.sidebar-collapsed { margin-left: 0; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 24px; }
+        .stat-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .stat-card h3 { color: #999; font-size: 14px; margin-bottom: 8px; }
+        .stat-card .value { font-size: 28px; font-weight: 700; color: #333; }
+        
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .card h2 { margin-bottom: 20px; color: #333; display: flex; justify-content: space-between; align-items: center; }
+        
+        .search-bar { display: flex; gap: 12px; margin-bottom: 20px; }
+        .search-bar input { flex: 1; padding: 10px; border: 2px solid #e0e0e0; border-radius: 6px; font-size: 14px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-warning { background: #ff9800; color: white; }
+        .btn-info { background: #2196f3; color: white; }
+        .btn:hover { opacity: 0.9; }
+        
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background: #f5f7fa; font-weight: 600; color: #666; }
+        
+        .badge { padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 500; }
+        .badge-enabled { background: #4caf50; color: white; }
+        .badge-disabled { background: #f44336; color: white; }
+        .tag { display: inline-block; padding: 4px 8px; background: #e3f2fd; color: #1976d2; border-radius: 4px; font-size: 12px; margin-right: 5px; }
+        
+        .pagination { display: flex; justify-content: center; gap: 8px; margin-top: 20px; }
+        .pagination button { padding: 8px 12px; border: 1px solid #e0e0e0; background: white; cursor: pointer; border-radius: 4px; }
+        .pagination button.active { background: #667eea; color: white; border-color: #667eea; }
+        .pagination button:disabled { opacity: 0.5; cursor: not-allowed; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 2000; }
+        .modal.active { display: flex; justify-content: center; align-items: center; }
+        .modal-content { background: white; border-radius: 8px; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+        .modal-header { padding: 20px; border-bottom: 1px solid #e0e0e0; display: flex; justify-content: space-between; align-items: center; }
+        .modal-body { padding: 20px; }
+        .modal-footer { padding: 20px; border-top: 1px solid #e0e0e0; display: flex; justify-content: flex-end; gap: 10px; }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+        .form-group input, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+        .form-group small { color: #666; font-size: 12px; }
+        
+        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; }
+    </style>
+</head>
+<body data-page="traders">
+    <div th:replace="admin/components/tw-admin-sidebar :: ~{}"></div>
+    <div th:replace="admin/components/tw-admin-topbar :: ~{}"></div>
+    
+    <div class="container" id="mainContainer">
+        <h1 style="margin-bottom: 24px; color: #333;">📊 交易员配置管理</h1>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>总交易员</h3>
+                <div class="value" id="totalTraders">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>启用中</h3>
+                <div class="value" id="enabledTraders" style="color: #4caf50;">-</div>
+            </div>
+            <div class="stat-card">
+                <h3>今日订单</h3>
+                <div class="value" id="todayOrders" style="color: #2196f3;">-</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>
+                交易员列表
+                <button class="btn btn-primary" onclick="openAddModal()">+ 添加交易员</button>
+            </h2>
+            
+            <div class="search-bar">
+                <input type="text" id="searchInput" placeholder="搜索交易员名称、Portfolio ID或标签..." onkeypress="if(event.key==='Enter') searchTraders()">
+                <button class="btn btn-primary" onclick="searchTraders()">搜索</button>
+                <button class="btn" onclick="clearSearch()">重置</button>
+            </div>
+            
+            <table>
+                <thead>
+                    <tr>
+                        <th>交易员名称</th>
+                        <th>Portfolio ID</th>
+                        <th>标签</th>
+                        <th>状态</th>
+                        <th>今日订单</th>
+                        <th>订阅人数</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="tradersTable"></tbody>
+            </table>
+            
+            <div class="pagination" id="pagination"></div>
+        </div>
+    </div>
+    
+    <!-- 添加/编辑弹窗 -->
+    <div class="modal" id="traderModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle">添加交易员</h2>
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="traderId">
+                <div class="form-group">
+                    <label>交易员名称 *</label>
+                    <input type="text" id="traderName" required>
+                </div>
+                <div class="form-group">
+                    <label>Portfolio ID *</label>
+                    <input type="text" id="portfolioId" required>
+                    <small>币安带单项目ID</small>
+                </div>
+                <div class="form-group">
+                    <label>标签</label>
+                    <input type="text" id="tags" placeholder="用逗号分隔">
+                </div>
+                <div class="form-group">
+                    <label>描述</label>
+                    <textarea id="description"></textarea>
+                </div>
+                <div class="form-group">
+                    <label>监控间隔（秒）</label>
+                    <input type="number" id="monitorInterval" value="60" min="30" max="300">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="saveTrader()">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentPage = 1, currentKeyword = '';
+        
+        async function loadStatistics() {
+            const res = await fetch('/admin/traders/statistics');
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('totalTraders').textContent = data.data.totalTraders;
+                document.getElementById('enabledTraders').textContent = data.data.enabledTraders;
+                document.getElementById('todayOrders').textContent = data.data.todayOrders;
+            }
+        }
+        
+        async function loadTraders(page = 1, keyword = '') {
+            const res = await fetch(`/admin/traders/list?page=${page}&pageSize=10&keyword=${encodeURIComponent(keyword)}`);
+            const result = await res.json();
+            
+            if (result.success) {
+                const data = result.data;
+                const tbody = document.getElementById('tradersTable');
+                tbody.innerHTML = data.traders.map(t => `
+                    <tr>
+                        <td><strong>${t.traderName}</strong></td>
+                        <td><code>${t.portfolioId}</code></td>
+                        <td>${t.tags ? t.tags.split(',').map(tag => `<span class="tag">${tag}</span>`).join('') : '-'}</td>
+                        <td><span class="badge ${t.enabled ? 'badge-enabled' : 'badge-disabled'}">${t.enabled ? '启用' : '禁用'}</span></td>
+                        <td>${t.todayOrders || 0}</td>
+                        <td>${t.subscriberCount || 0}</td>
+                        <td>
+                            <button class="btn btn-info" style="padding: 6px 12px; margin-right: 5px;" onclick="editTrader(${t.id})">编辑</button>
+                            <button class="btn ${t.enabled ? 'btn-warning' : 'btn-success'}" style="padding: 6px 12px; margin-right: 5px;" onclick="toggleStatus(${t.id}, ${!t.enabled})">${t.enabled ? '禁用' : '启用'}</button>
+                            <button class="btn btn-danger" style="padding: 6px 12px;" onclick="deleteTrader(${t.id})">删除</button>
+                        </td>
+                    </tr>
+                `).join('');
+                
+                renderPagination(data.page, data.totalPages);
+                currentPage = page;
+            }
+        }
+        
+        function renderPagination(current, total) {
+            const pagination = document.getElementById('pagination');
+            let html = `<button onclick="loadTraders(${current - 1}, currentKeyword)" ${current === 1 ? 'disabled' : ''}>上一页</button>`;
+            for (let i = 1; i <= total; i++) {
+                if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+                    html += `<button class="${i === current ? 'active' : ''}" onclick="loadTraders(${i}, currentKeyword)">${i}</button>`;
+                }
+            }
+            html += `<button onclick="loadTraders(${current + 1}, currentKeyword)" ${current === total ? 'disabled' : ''}>下一页</button>`;
+            pagination.innerHTML = html;
+        }
+        
+        function searchTraders() {
+            currentKeyword = document.getElementById('searchInput').value.trim();
+            loadTraders(1, currentKeyword);
+        }
+        
+        function clearSearch() {
+            document.getElementById('searchInput').value = '';
+            currentKeyword = '';
+            loadTraders(1, '');
+        }
+        
+        function openAddModal() {
+            document.getElementById('modalTitle').textContent = '添加交易员';
+            document.getElementById('traderId').value = '';
+            document.getElementById('traderName').value = '';
+            document.getElementById('portfolioId').value = '';
+            document.getElementById('tags').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('monitorInterval').value = '60';
+            document.getElementById('traderModal').classList.add('active');
+        }
+        
+        async function editTrader(id) {
+            const res = await fetch(`/admin/traders/detail/${id}`);
+            const data = await res.json();
+            if (data.success) {
+                const t = data.data;
+                document.getElementById('modalTitle').textContent = '编辑交易员';
+                document.getElementById('traderId').value = t.id;
+                document.getElementById('traderName').value = t.traderName;
+                document.getElementById('portfolioId').value = t.portfolioId;
+                document.getElementById('tags').value = t.tags || '';
+                document.getElementById('description').value = t.description || '';
+                document.getElementById('monitorInterval').value = t.monitorInterval || 60;
+                document.getElementById('traderModal').classList.add('active');
+            }
+        }
+        
+        async function saveTrader() {
+            const id = document.getElementById('traderId').value;
+            const trader = {
+                traderName: document.getElementById('traderName').value,
+                portfolioId: document.getElementById('portfolioId').value,
+                tags: document.getElementById('tags').value,
+                description: document.getElementById('description').value,
+                monitorInterval: parseInt(document.getElementById('monitorInterval').value)
+            };
+            
+            if (!trader.traderName || !trader.portfolioId) {
+                alert('请填写必填项');
+                return;
+            }
+            
+            const url = id ? `/admin/traders/update/${id}` : '/admin/traders/add';
+            const method = id ? 'PUT' : 'POST';
+            
+            const res = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(trader)
+            });
+            const data = await res.json();
+            
+            alert(data.message);
+            if (data.success) {
+                closeModal();
+                loadStatistics();
+                loadTraders(currentPage, currentKeyword);
+            }
+        }
+        
+        async function toggleStatus(id, enabled) {
+            if (!confirm(`确定要${enabled ? '启用' : '禁用'}该交易员吗？`)) return;
+            
+            const res = await fetch(`/admin/traders/toggle-status/${id}?enabled=${enabled}`, { method: 'POST' });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) {
+                loadStatistics();
+                loadTraders(currentPage, currentKeyword);
+            }
+        }
+        
+        async function deleteTrader(id) {
+            if (!confirm('确定要删除该交易员吗？')) return;
+            
+            const res = await fetch(`/admin/traders/delete/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            alert(data.message);
+            if (data.success) {
+                loadStatistics();
+                loadTraders(currentPage, currentKeyword);
+            }
+        }
+        
+        function closeModal() {
+            document.getElementById('traderModal').classList.remove('active');
+        }
+        
+        loadStatistics();
+        loadTraders();
+    </script>
+    <script th:replace="admin/components/tw-admin-common-script :: ~{}"></script>
+</body>
+</html>
