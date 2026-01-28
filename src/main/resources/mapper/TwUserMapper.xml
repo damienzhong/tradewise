@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.damien.tradewise.user.mapper.TwUserMapper">
+
+    <resultMap id="TwUserResultMap" type="com.damien.tradewise.user.entity.TwUser">
+        <id property="id" column="id"/>
+        <result property="username" column="username"/>
+        <result property="password" column="password"/>
+        <result property="nickname" column="nickname"/>
+        <result property="email" column="email"/>
+        <result property="emailVerified" column="email_verified"/>
+        <result property="phone" column="phone"/>
+        <result property="avatar" column="avatar"/>
+        <result property="enabled" column="enabled"/>
+        <result property="lastLoginTime" column="last_login_time"/>
+        <result property="lastLoginIp" column="last_login_ip"/>
+        <result property="loginCount" column="login_count"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <select id="findByUsername" resultMap="TwUserResultMap">
+        SELECT * FROM tw_users WHERE username = #{username}
+    </select>
+
+    <select id="findByEmail" resultMap="TwUserResultMap">
+        SELECT * FROM tw_users WHERE email = #{email}
+    </select>
+
+    <select id="findById" resultMap="TwUserResultMap">
+        SELECT * FROM tw_users WHERE id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="com.damien.tradewise.user.entity.TwUser"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO tw_users (
+            username, password, nickname, email, phone, avatar, enabled
+        ) VALUES (
+            #{username}, #{password}, #{nickname}, #{email}, #{phone}, #{avatar}, #{enabled}
+        )
+    </insert>
+
+    <update id="update" parameterType="com.damien.tradewise.user.entity.TwUser">
+        UPDATE tw_users
+        <set>
+            <if test="nickname != null">nickname = #{nickname},</if>
+            <if test="email != null">email = #{email},</if>
+            <if test="phone != null">phone = #{phone},</if>
+            <if test="avatar != null">avatar = #{avatar},</if>
+            <if test="enabled != null">enabled = #{enabled},</if>
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateLoginInfo">
+        UPDATE tw_users
+        SET last_login_time = NOW(),
+            last_login_ip = #{loginIp},
+            login_count = login_count + 1
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE tw_users
+        SET password = #{password}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateEmailVerified">
+        UPDATE tw_users
+        SET email_verified = #{emailVerified}
+        WHERE id = #{id}
+    </update>
+    
+    <select id="findAllWithPagination" resultMap="TwUserResultMap">
+        SELECT * FROM tw_users
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <select id="searchUsers" resultMap="TwUserResultMap">
+        SELECT * FROM tw_users
+        WHERE username LIKE CONCAT('%', #{keyword}, '%')
+           OR email LIKE CONCAT('%', #{keyword}, '%')
+           OR nickname LIKE CONCAT('%', #{keyword}, '%')
+        ORDER BY created_at DESC
+        LIMIT #{limit} OFFSET #{offset}
+    </select>
+    
+    <select id="countAll" resultType="int">
+        SELECT COUNT(*) FROM tw_users
+    </select>
+    
+    <select id="countSearchUsers" resultType="int">
+        SELECT COUNT(*) FROM tw_users
+        WHERE username LIKE CONCAT('%', #{keyword}, '%')
+           OR email LIKE CONCAT('%', #{keyword}, '%')
+           OR nickname LIKE CONCAT('%', #{keyword}, '%')
+    </select>
+    
+    <select id="countByEnabled" resultType="int">
+        SELECT COUNT(*) FROM tw_users WHERE enabled = #{enabled}
+    </select>
+    
+    <select id="countByEmailVerified" resultType="int">
+        SELECT COUNT(*) FROM tw_users WHERE email_verified = #{emailVerified}
+    </select>
+    
+    <update id="updateEnabled">
+        UPDATE tw_users SET enabled = #{enabled} WHERE id = #{id}
+    </update>
+    
+    <delete id="deleteById">
+        DELETE FROM tw_users WHERE id = #{id}
+    </delete>
+
+</mapper>
