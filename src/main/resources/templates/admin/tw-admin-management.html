@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员管理 - TradeWise</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f7fa; }
+        .container { margin-left: 200px; margin-top: 60px; padding: 32px; transition: margin-left 0.3s ease; }
+        .container.sidebar-collapsed { margin-left: 0; }
+        .card { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .card h2 { margin-bottom: 20px; color: #333; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .btn { padding: 10px 20px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500; }
+        .btn-primary { background: #667eea; color: white; }
+        .btn-danger { background: #f44336; color: white; }
+        .btn-success { background: #4caf50; color: white; }
+        .btn:hover { opacity: 0.9; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #f0f0f0; }
+        th { background: #f5f7fa; font-weight: 600; color: #666; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 500; }
+        .badge-super { background: #ff9800; color: white; }
+        .badge-admin { background: #2196f3; color: white; }
+        .badge-enabled { background: #4caf50; color: white; }
+        .badge-disabled { background: #f44336; color: white; }
+        .message { padding: 12px; border-radius: 6px; margin-bottom: 16px; display: none; }
+        .message.success { background: #d4edda; color: #155724; }
+        .message.error { background: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body data-page="admin-management">
+    <div th:replace="admin/components/tw-admin-sidebar :: ~{}"></div>
+    <div th:replace="admin/components/tw-admin-topbar :: ~{}"></div>
+    
+    <div class="container" id="mainContainer">
+        <div class="card">
+            <h2>创建管理员</h2>
+            <div id="createMessage" class="message"></div>
+            <form id="createForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>用户名 *</label>
+                        <input type="text" id="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>密码 *</label>
+                        <input type="password" id="password" required minlength="6">
+                    </div>
+                    <div class="form-group">
+                        <label>昵称</label>
+                        <input type="text" id="nickName">
+                    </div>
+                    <div class="form-group">
+                        <label>邮箱</label>
+                        <input type="email" id="email">
+                    </div>
+                    <div class="form-group">
+                        <label>角色 *</label>
+                        <select id="role">
+                            <option value="ADMIN">普通管理员</option>
+                            <option value="SUPER_ADMIN">超级管理员</option>
+                        </select>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">创建管理员</button>
+            </form>
+        </div>
+        
+        <div class="card">
+            <h2>管理员列表</h2>
+            <div id="listMessage" class="message"></div>
+            <table id="adminTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>用户名</th>
+                        <th>昵称</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>状态</th>
+                        <th>登录次数</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        // 创建管理员
+        document.getElementById('createForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const messageEl = document.getElementById('createMessage');
+            
+            const data = {
+                username: document.getElementById('username').value,
+                password: document.getElementById('password').value,
+                nickName: document.getElementById('nickName').value,
+                email: document.getElementById('email').value,
+                role: document.getElementById('role').value
+            };
+            
+            try {
+                const response = await fetch('/admin/management/create', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    messageEl.className = 'message success';
+                    messageEl.textContent = result.message;
+                    messageEl.style.display = 'block';
+                    document.getElementById('createForm').reset();
+                    loadAdmins();
+                } else {
+                    messageEl.className = 'message error';
+                    messageEl.textContent = result.message;
+                    messageEl.style.display = 'block';
+                }
+            } catch (error) {
+                messageEl.className = 'message error';
+                messageEl.textContent = '操作失败';
+                messageEl.style.display = 'block';
+            }
+        });
+        
+        // 加载管理员列表
+        async function loadAdmins() {
+            try {
+                const response = await fetch('/admin/management/list');
+                const result = await response.json();
+                
+                if (result.success) {
+                    const tbody = document.querySelector('#adminTable tbody');
+                    tbody.innerHTML = result.data.map(admin => `
+                        <tr>
+                            <td>${admin.id}</td>
+                            <td>${admin.username}</td>
+                            <td>${admin.nickName || '-'}</td>
+                            <td>${admin.email || '-'}</td>
+                            <td><span class="badge ${admin.role === 'SUPER_ADMIN' ? 'badge-super' : 'badge-admin'}">${admin.role === 'SUPER_ADMIN' ? '超级管理员' : '普通管理员'}</span></td>
+                            <td><span class="badge ${admin.enabled ? 'badge-enabled' : 'badge-disabled'}">${admin.enabled ? '启用' : '禁用'}</span></td>
+                            <td>${admin.loginCount || 0}</td>
+                            <td>${new Date(admin.createdAt).toLocaleString()}</td>
+                            <td>
+                                ${admin.role !== 'SUPER_ADMIN' ? `
+                                    <button class="btn ${admin.enabled ? 'btn-danger' : 'btn-success'}" onclick="toggleStatus(${admin.id}, ${!admin.enabled})" style="margin-right: 8px;">
+                                        ${admin.enabled ? '禁用' : '启用'}
+                                    </button>
+                                    <button class="btn btn-danger" onclick="deleteAdmin(${admin.id})">删除</button>
+                                ` : '-'}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+            } catch (error) {
+                console.error('加载失败', error);
+            }
+        }
+        
+        // 切换状态
+        async function toggleStatus(adminId, enabled) {
+            if (!confirm(`确定要${enabled ? '启用' : '禁用'}该管理员吗？`)) return;
+            
+            try {
+                const response = await fetch(`/admin/management/toggle-status/${adminId}?enabled=${enabled}`, {
+                    method: 'POST'
+                });
+                const result = await response.json();
+                
+                const messageEl = document.getElementById('listMessage');
+                if (result.success) {
+                    messageEl.className = 'message success';
+                    messageEl.textContent = result.message;
+                    messageEl.style.display = 'block';
+                    loadAdmins();
+                } else {
+                    messageEl.className = 'message error';
+                    messageEl.textContent = result.message;
+                    messageEl.style.display = 'block';
+                }
+            } catch (error) {
+                alert('操作失败');
+            }
+        }
+        
+        // 删除管理员
+        async function deleteAdmin(adminId) {
+            if (!confirm('确定要删除该管理员吗？此操作不可恢复！')) return;
+            
+            try {
+                const response = await fetch(`/admin/management/delete/${adminId}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
+                
+                const messageEl = document.getElementById('listMessage');
+                if (result.success) {
+                    messageEl.className = 'message success';
+                    messageEl.textContent = result.message;
+                    messageEl.style.display = 'block';
+                    loadAdmins();
+                } else {
+                    messageEl.className = 'message error';
+                    messageEl.textContent = result.message;
+                    messageEl.style.display = 'block';
+                }
+            } catch (error) {
+                alert('操作失败');
+            }
+        }
+        
+        // 页面加载时获取列表
+        loadAdmins();
+    </script>
+    <script th:replace="admin/components/tw-admin-common-script :: ~{}"></script>
+</body>
+</html>
