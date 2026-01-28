@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.damien.tradewise.common.mapper.TwLoginLogMapper">
+    
+    <insert id="insert" parameterType="com.damien.tradewise.common.entity.TwLoginLog">
+        INSERT INTO tw_login_logs (user_type, user_id, username, login_ip, user_agent, login_status, fail_reason)
+        VALUES (#{userType}, #{userId}, #{username}, #{loginIp}, #{userAgent}, #{loginStatus}, #{failReason})
+    </insert>
+    
+    <select id="findByUserId" resultType="com.damien.tradewise.common.entity.TwLoginLog">
+        SELECT * FROM tw_login_logs
+        WHERE user_type = #{userType} AND user_id = #{userId}
+        ORDER BY login_time DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+    
+    <select id="findAll" resultType="com.damien.tradewise.common.entity.TwLoginLog">
+        SELECT * FROM tw_login_logs
+        ORDER BY login_time DESC
+        <if test="limit != null">
+            LIMIT #{limit}
+        </if>
+    </select>
+    
+</mapper>
