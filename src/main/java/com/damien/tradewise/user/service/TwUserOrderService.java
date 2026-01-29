@@ -22,12 +22,12 @@ public class TwUserOrderService {
         int total = orderMapper.countByUserSubscriptions(userId, traderId, symbol, side, date);
         
         Map<String, Object> result = new HashMap<>();
-        result.put("content", orders);
-        result.put("totalElements", total);
+        result.put("success", true);
+        result.put("orders", orders);
+        result.put("total", total);
         result.put("totalPages", (int) Math.ceil((double) total / size));
+        result.put("page", page);
         result.put("size", size);
-        result.put("number", page);
-        result.put("last", page >= Math.ceil((double) total / size));
         return result;
     }
 
