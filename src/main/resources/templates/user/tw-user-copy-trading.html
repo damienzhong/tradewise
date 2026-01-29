@@ -105,16 +105,36 @@
         <div id="orders-tab" class="tab-content">
             <div class="card">
                 <h2>订单记录</h2>
-                <div style="text-align: center; padding: 60px; color: #999;">
-                    <div style="font-size: 48px;">📋</div>
-                    <p style="margin-top: 15px;">订单记录功能开发中...</p>
+                
+                <!-- 筛选条件 -->
+                <div style="display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap;">
+                    <select id="filterTraderId" class="btn" style="flex: 0 0 auto;">
+                        <option value="">全部交易员</option>
+                    </select>
+                    <input type="text" id="filterSymbol" placeholder="交易对" class="btn" style="flex: 0 0 150px;">
+                    <select id="filterSide" class="btn" style="flex: 0 0 auto;">
+                        <option value="">全部方向</option>
+                        <option value="BUY">买入</option>
+                        <option value="SELL">卖出</option>
+                    </select>
+                    <input type="date" id="filterDate" class="btn" style="flex: 0 0 auto;">
+                    <button class="btn btn-primary" onclick="loadOrders(1)" style="flex: 0 0 auto;">搜索</button>
+                    <button class="btn btn-secondary" onclick="resetFilters()" style="flex: 0 0 auto;">重置</button>
                 </div>
+                
+                <!-- 订单列表 -->
+                <div id="orderList" style="overflow-x: auto;">
+                    <div style="text-align: center; padding: 40px; color: #999;">加载中...</div>
+                </div>
+                
+                <div class="pagination" id="orderPagination"></div>
             </div>
         </div>
     </div>
     
     <script>
         let currentTraderPage = 1;
+        let currentOrderPage = 1;
         
         // Tab切换
         function switchTab(tabName) {
@@ -130,6 +150,10 @@
             } else if (tabName === 'subscriptions' && !window.subscriptionsLoaded) {
                 loadSubscriptions();
                 window.subscriptionsLoaded = true;
+            } else if (tabName === 'orders' && !window.ordersLoaded) {
+                loadTraderOptions();
+                loadOrders();
+                window.ordersLoaded = true;
             }
         }
         
@@ -285,6 +309,245 @@
             if (!dateStr) return '-';
             const date = new Date(dateStr);
             return date.toLocaleDateString('zh-CN');
+        }
+        
+        // 订单记录功能
+        async function loadTraderOptions() {
+            const res = await fetch('/user/subscriptions/my');
+            const data = await res.json();
+            if (data.success) {
+                const select = document.getElementById('filterTraderId');
+                select.innerHTML = '<option value="">全部交易员</option>' + 
+                    data.subscriptions.map(s => `<option value="${s.traderId}">${s.traderName}</option>`).join('');
+            }
+        }
+        
+        async function loadOrders(page = 1) {
+            const traderId = document.getElementById('filterTraderId').value;
+            const symbol = document.getElementById('filterSymbol').value;
+            const side = document.getElementById('filterSide').value;
+            const date = document.getElementById('filterDate').value;
+            
+            let url = `/user/orders/list?page=${page}&size=10`;
+            if (traderId) url += `&traderId=${traderId}`;
+            if (symbol) url += `&symbol=${symbol}`;
+            if (side) url += `&side=${side}`;
+            if (date) url += `&date=${date}`;
+            
+            const res = await fetch(url);
+            const data = await res.json();
+            if (data.success) {
+                renderOrders(data.orders);
+                renderOrderPagination(data.page, data.totalPages);
+                currentOrderPage = page;
+            } else {
+                document.getElementById('orderList').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #f44336;">${data.message || '加载失败'}</div>
+                `;
+            }
+        }
+        
+        function renderOrders(orders) {
+            const list = document.getElementById('orderList');
+            if (orders.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div style="font-size: 48px;">📋</div>
+                        <p>暂无订单记录</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = `
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="background: #f5f7fa; border-bottom: 2px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left;">ID</th>
+                            <th style="padding: 12px; text-align: left;">交易员</th>
+                            <th style="padding: 12px; text-align: left;">交易对</th>
+                            <th style="padding: 12px; text-align: left;">操作类型</th>
+                            <th style="padding: 12px; text-align: right;">均价 (USDT)</th>
+                            <th style="padding: 12px; text-align: right;">成交数量</th>
+                            <th style="padding: 12px; text-align: right;">总价值 (USDT)</th>
+                            <th style="padding: 12px; text-align: right;">已实现盈亏 (USDT)</th>
+                            <th style="padding: 12px; text-align: left;">订单时间</th>
+                            <th style="padding: 12px; text-align: center;">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${orders.map(order => `
+                            <tr style="border-bottom: 1px solid #e0e0e0;">
+                                <td style="padding: 12px;">${order.id}</td>
+                                <td style="padding: 12px;">
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <img src="${order.avatarUrl || '/images/default-avatar.png'}" style="width: 32px; height: 32px; border-radius: 50%;" alt="${order.traderName}">
+                                        <span>${order.traderName || '-'}</span>
+                                    </div>
+                                </td>
+                                <td style="padding: 12px; font-weight: 600;">${order.symbol}</td>
+                                <td style="padding: 12px;">
+                                    <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; 
+                                        background: ${getActionTypeBg(order.actionType)}; 
+                                        color: white;">
+                                        ${order.actionType}
+                                    </span>
+                                </td>
+                                <td style="padding: 12px; text-align: right; font-family: monospace;">${order.avgPrice ? parseFloat(order.avgPrice).toFixed(4) : '-'}</td>
+                                <td style="padding: 12px; text-align: right; font-family: monospace;">${order.executedQty ? parseFloat(order.executedQty).toFixed(4) : '-'}</td>
+                                <td style="padding: 12px; text-align: right; font-family: monospace;">${order.totalValue ? parseFloat(order.totalValue).toFixed(2) : '-'}</td>
+                                <td style="padding: 12px; text-align: right; font-family: monospace; color: ${getPnlColor(order.realizedPnl)};">
+                                    ${order.realizedPnl ? parseFloat(order.realizedPnl).toFixed(2) : '-'}
+                                </td>
+                                <td style="padding: 12px; font-size: 12px; color: #666;">${formatDateTime(order.orderTime)}</td>
+                                <td style="padding: 12px; text-align: center;">
+                                    <button class="btn btn-primary" style="padding: 4px 12px; font-size: 12px;" onclick="viewOrderDetail(${order.id})">
+                                        查看详情
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        function renderOrderPagination(current, total) {
+            const pagination = document.getElementById('orderPagination');
+            if (total <= 1) {
+                pagination.innerHTML = '';
+                return;
+            }
+            let html = `<button onclick="loadOrders(${current - 1})" ${current === 1 ? 'disabled' : ''}>上一页</button>`;
+            for (let i = 1; i <= total; i++) {
+                if (i === 1 || i === total || (i >= current - 2 && i <= current + 2)) {
+                    html += `<button class="${i === current ? 'active' : ''}" onclick="loadOrders(${i})">${i}</button>`;
+                }
+            }
+            html += `<button onclick="loadOrders(${current + 1})" ${current === total ? 'disabled' : ''}>下一页</button>`;
+            pagination.innerHTML = html;
+        }
+        
+        function resetFilters() {
+            document.getElementById('filterTraderId').value = '';
+            document.getElementById('filterSymbol').value = '';
+            document.getElementById('filterSide').value = '';
+            document.getElementById('filterDate').value = '';
+            loadOrders(1);
+        }
+        
+        function getActionTypeText(actionType) {
+            const map = {
+                'OPEN': '开仓',
+                'CLOSE': '平仓',
+                'ADD': '加仓',
+                'REDUCE': '减仓'
+            };
+            return map[actionType] || actionType;
+        }
+        
+        function getActionTypeBg(actionType) {
+            if (actionType.includes('开多') || actionType.includes('平空')) return '#4caf50';
+            if (actionType.includes('开空') || actionType.includes('平多')) return '#f44336';
+            return '#666';
+        }
+        
+        function getPnlColor(pnl) {
+            if (!pnl) return '#666';
+            return parseFloat(pnl) > 0 ? '#4caf50' : parseFloat(pnl) < 0 ? '#f44336' : '#666';
+        }
+        
+        async function viewOrderDetail(orderId) {
+            const res = await fetch(`/user/orders/detail/${orderId}`);
+            const data = await res.json();
+            if (data.success) {
+                showOrderDetailModal(data.order);
+            } else {
+                alert(data.message || '加载详情失败');
+            }
+        }
+        
+        function showOrderDetailModal(order) {
+            const modal = document.createElement('div');
+            modal.style.cssText = 'position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 9999;';
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+            
+            modal.innerHTML = `
+                <div style="background: white; border-radius: 12px; padding: 24px; max-width: 600px; width: 90%; max-height: 80vh; overflow-y: auto;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="margin: 0;">订单详情</h3>
+                        <button onclick="this.closest('div[style*=fixed]').remove()" style="border: none; background: none; font-size: 24px; cursor: pointer; color: #999;">&times;</button>
+                    </div>
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">订单ID</th>
+                            <td style="padding: 12px;">${order.orderId}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">交易员</th>
+                            <td style="padding: 12px;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <img src="${order.avatarUrl || '/images/default-avatar.png'}" style="width: 32px; height: 32px; border-radius: 50%;" alt="${order.traderName}">
+                                    <span>${order.traderName}</span>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">交易对</th>
+                            <td style="padding: 12px; font-weight: 600;">${order.symbol}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">操作类型</th>
+                            <td style="padding: 12px;">
+                                <span style="padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; 
+                                    background: ${getActionTypeBg(order.actionType)}; color: white;">
+                                    ${order.actionType}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">均价</th>
+                            <td style="padding: 12px; font-family: monospace;">${order.avgPrice ? parseFloat(order.avgPrice).toFixed(4) : '-'} USDT</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">成交数量</th>
+                            <td style="padding: 12px; font-family: monospace;">${order.executedQty ? parseFloat(order.executedQty).toFixed(4) : '-'}</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">总价值</th>
+                            <td style="padding: 12px; font-family: monospace;">${order.totalValue ? parseFloat(order.totalValue).toFixed(2) : '-'} USDT</td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">已实现盈亏</th>
+                            <td style="padding: 12px; font-family: monospace; color: ${getPnlColor(order.realizedPnl)};">
+                                ${order.realizedPnl ? parseFloat(order.realizedPnl).toFixed(2) + ' USDT' : '-'}
+                            </td>
+                        </tr>
+                        <tr style="border-bottom: 1px solid #e0e0e0;">
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">订单时间</th>
+                            <td style="padding: 12px;">${formatDateTime(order.orderTime)}</td>
+                        </tr>
+                        <tr>
+                            <th style="padding: 12px; text-align: left; color: #666; font-weight: 500;">更新时间</th>
+                            <td style="padding: 12px;">${formatDateTime(order.updateTime)}</td>
+                        </tr>
+                    </table>
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+        }
+        
+        function formatDateTime(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleString('zh-CN', { 
+                year: 'numeric', 
+                month: '2-digit', 
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
         
         // 初始加载
