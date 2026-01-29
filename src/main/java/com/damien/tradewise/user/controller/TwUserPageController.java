@@ -23,6 +23,11 @@ public class TwUserPageController {
         return "user/tw-user-forgot-password";
     }
     
+    @GetMapping("/reset-password")
+    public String resetPassword() {
+        return "user/tw-user-reset-password";
+    }
+    
     @GetMapping("/dashboard")
     public String dashboard() {
         return "user/tw-user-dashboard";
